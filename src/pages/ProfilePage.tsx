@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { User, Save, CheckCircle } from "lucide-react";
+import { User, Save, CheckCircle, GripVertical, ChevronUp, ChevronDown, Plus, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useData } from "@/contexts/DataContext";
+import type { Fact } from "@/types";
 
 export function ProfilePage() {
   const { profile, updateProfile } = useData();
@@ -40,6 +41,49 @@ export function ProfilePage() {
               <Label htmlFor="profile-name" className="text-xs text-zinc-300">Display Name</Label>
               <Input id="profile-name" placeholder="Enter your name" value={profile.name} onChange={(e) => update({ name: e.target.value })} className="mt-1.5 bg-zinc-900 border-zinc-700 text-zinc-200 placeholder:text-zinc-600" />
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Facts About Me */}
+      <Card className="border-zinc-700/50">
+        <CardHeader>
+          <CardTitle className="text-sm text-zinc-400">Facts About Me</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            {(profile.facts || []).sort((a, b) => a.order - b.order).map((fact, idx) => (
+              <div key={fact.id} className="flex items-center gap-2 p-2 rounded-lg bg-zinc-900 border border-zinc-800">
+                <GripVertical className="w-4 h-4 text-zinc-500" />
+                <div className="flex-1 min-w-0">
+                  <Input value={fact.title} onChange={(e) => {
+                    const updated = profile.facts.map(f => f.id === fact.id ? { ...f, title: e.target.value } : f);
+                    updateProfile({ ...profile, facts: updated });
+                  }} className="h-8 text-xs bg-transparent border-none" placeholder="Title" />
+                  <Input value={fact.content} onChange={(e) => {
+                    const updated = profile.facts.map(f => f.id === fact.id ? { ...f, content: e.target.value } : f);
+                    updateProfile({ ...profile, facts: updated });
+                  }} className="h-8 text-xs bg-transparent border-none mt-0.5" placeholder="Content" />
+                </div>
+                <div className="flex items-center gap-1">
+                  <button onClick={() => {
+                    const facts = [...profile.facts];
+                    if (idx > 0) { [facts[idx - 1], facts[idx]] = [facts[idx], facts[idx - 1]]; facts[idx - 1].order = idx - 1; facts[idx].order = idx; updateProfile({ ...profile, facts }); }
+                  }} className="text-zinc-500 hover:text-zinc-300"><ChevronUp className="w-4 h-4" /></button>
+                  <button onClick={() => {
+                    const facts = [...profile.facts];
+                    if (idx < facts.length - 1) { [facts[idx], facts[idx + 1]] = [facts[idx + 1], facts[idx]]; facts[idx].order = idx + 1; facts[idx + 1].order = idx; updateProfile({ ...profile, facts }); }
+                  }} className="text-zinc-500 hover:text-zinc-300"><ChevronDown className="w-4 h-4" /></button>
+                  <button onClick={() => updateProfile({ ...profile, facts: profile.facts.filter(f => f.id !== fact.id) })} className="text-zinc-500 hover:text-red-400"><Trash2 className="w-4 h-4" /></button>
+                </div>
+              </div>
+            ))}
+            <Button size="sm" variant="outline" className="w-full mt-2" onClick={() => {
+              const newFact: Fact = { id: Date.now().toString() + Math.random().toString(36).substr(2, 9), title: "", content: "", order: (profile.facts?.length || 0) };
+              updateProfile({ ...profile, facts: [...(profile.facts || []), newFact] });
+            }}>
+              <Plus className="w-3.5 h-3.5 mr-1.5" /> Add Fact
+            </Button>
           </div>
         </CardContent>
       </Card>

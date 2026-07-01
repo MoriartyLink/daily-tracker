@@ -40,6 +40,14 @@ export interface UserProfile {
   email: string;
   avatar: string;
   goals: Goal[];
+  facts: Fact[];
+}
+
+export interface Fact {
+  id: string;
+  title: string;
+  content: string;
+  order: number;
 }
 
 export interface Goal {

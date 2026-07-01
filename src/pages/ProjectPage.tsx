@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import {
   Plus, Trash2, ChevronRight, ChevronDown, FolderKanban,
   Calendar, GripVertical, Check, ArrowRight,
@@ -43,18 +43,27 @@ function KanbanCardItem({ card, onUpdate, onDelete, onMove, onDragStart, onDragE
   const pri = PRIORITY_CONFIG[card.priority];
   const nextCol = KANBAN_COLUMNS.findIndex((c) => c.id === card.columnId);
   const nextColumn = nextCol < KANBAN_COLUMNS.length - 1 ? KANBAN_COLUMNS[nextCol + 1] : null;
+  const titleRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const el = titleRef.current;
+    if (el) {
+      el.style.height = "auto";
+      el.style.height = el.scrollHeight + "px";
+    }
+  }, [card.title]);
 
   return (
-    <div draggable={true} onDragStart={(e) => onDragStart?.(e, card.id)} onDragEnd={() => onDragEnd?.()} className="bg-zinc-950 rounded-lg border border-zinc-800 hover:border-zinc-700 shadow-sm transition-all duration-200 group cursor-grab active:cursor-grabbing">
+    <div draggable={true} onDragStart={(e) => onDragStart?.(e, card.id)} onDragEnd={() => onDragEnd?.()} className="bg-zinc-950 rounded-lg border border-zinc-800 hover:border-zinc-700 shadow-sm transition-all duration-200 group cursor-grab active:cursor-grabbing break-words">
       <div className="p-3 space-y-2">
-        <div className="flex items-start gap-2">
+        <div className="flex items-start gap-2 break-words">
           <GripVertical className="w-3.5 h-3.5 text-zinc-500 mt-0.5 shrink-0 cursor-grab" />
-          <input className="flex-1 bg-transparent text-sm text-zinc-200 placeholder:text-zinc-600 outline-none font-medium min-w-0 break-words whitespace-normal max-w-full" placeholder="Card title..." value={card.title} onChange={(e) => onUpdate({ title: e.target.value })} />
+          <textarea ref={titleRef} rows={1} className="flex-1 bg-transparent text-sm text-zinc-200 placeholder:text-zinc-600 outline-none font-medium min-w-0 break-words whitespace-normal resize-none overflow-hidden max-w-full" placeholder="Card title..." value={card.title} onChange={(e) => onUpdate({ title: e.target.value })} />
           <button onClick={() => setExpanded(!expanded)} className="text-zinc-500 hover:text-zinc-300 cursor-pointer shrink-0">
             {expanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
           </button>
         </div>
-        <div className="flex items-center gap-2 pl-5">
+        <div className="flex items-center gap-2 pl-5 break-words">
           <span className={`text-[10px] px-1.5 py-0.5 rounded-md ${pri.bg} ${pri.text} font-medium`}>{pri.label}</span>
           {card.dueDate && <span className="text-[10px] text-zinc-400 flex items-center gap-1"><Calendar className="w-2.5 h-2.5" />{new Date(card.dueDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>}
           {nextColumn && <button onClick={() => onMove(nextColumn.id)} className="ml-auto opacity-0 group-hover:opacity-100 text-[10px] text-zinc-400 hover:text-blue-400 cursor-pointer flex items-center gap-0.5 transition-all"><ArrowRight className="w-2.5 h-2.5" />{nextColumn.title}</button>}

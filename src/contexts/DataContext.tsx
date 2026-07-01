@@ -23,7 +23,7 @@ interface DataContextType {
   logout: () => Promise<void>;
 }
 
-const defaultProfile: UserProfile = { id: "", name: "", email: "", avatar: "", goals: [] };
+const defaultProfile: UserProfile = { id: "", name: "", email: "", avatar: "", goals: [], facts: [] };
 
 const DataContext = createContext<DataContextType | null>(null);
 
@@ -95,7 +95,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           setEntries(map);
         }
         if (pRes.data) {
-          setProfile({ id: pRes.data.id, name: pRes.data.name, email: pRes.data.email || "", avatar: pRes.data.avatar, goals: pRes.data.goals });
+          setProfile({ id: pRes.data.id, name: pRes.data.name, email: pRes.data.email || "", avatar: pRes.data.avatar, goals: pRes.data.goals, facts: pRes.data.facts || [] });
         }
         if (prRes.data) {
           setProjectsState(prRes.data.map((r: Record<string, unknown>) => ({
@@ -135,7 +135,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setProfile(p);
     if (isSupabaseConfigured && supabase) {
       supabase.from("user_profile").update({
-        id: p.id, name: p.name, email: p.email, avatar: p.avatar, goals: p.goals, updated_at: new Date().toISOString(),
+        id: p.id, name: p.name, email: p.email, avatar: p.avatar, goals: p.goals, facts: p.facts, updated_at: new Date().toISOString(),
       }).then(() => {});
     } else { lsSet("daily-tracker-profile", p); }
   }, []);

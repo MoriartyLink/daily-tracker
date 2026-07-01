@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { Plus, Trash2, Calendar, Brain, Heart, ChevronLeft, ChevronRight, CheckCircle2, Download } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,27 @@ function createEmptyTask(): Task {
 }
 
 function mentalLabel(v: number) { return v === 1 ? "Low" : v === 2 ? "Medium" : "High"; }
+
+function TaskField({ value, onChange, placeholder }: { value: string; onChange: (value: string) => void; placeholder: string }) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (el) {
+      el.style.height = "auto";
+      el.style.height = el.scrollHeight + "px";
+    }
+  }, [value]);
+  return (
+    <textarea
+      ref={ref}
+      rows={1}
+      placeholder={placeholder}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="w-full bg-transparent text-zinc-200 placeholder:text-zinc-600 outline-none text-[13px] p-0 border-none resize-none overflow-hidden break-words whitespace-normal"
+    />
+  );
+}
 
 function generateMarkdown(entry: DailyEntry, date: Date): string {
   const lines: string[] = [];
@@ -134,9 +155,13 @@ export function JournalPage() {
   const dateKey = getDateString(currentDate);
   const { entries, updateEntry } = useData();
   const entry = entries[dateKey] || createEmptyEntry(dateKey);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
 
   const save = useCallback((updates: Partial<DailyEntry>) => {
     updateEntry(dateKey, { ...entry, ...updates });
+    setSaveStatus("saving");
+    setTimeout(() => setSaveStatus("saved"), 800);
+    setTimeout(() => setSaveStatus("idle"), 2500);
   }, [dateKey, entry, updateEntry]);
 
   const addTask = () => save({ tasks: [...entry.tasks, createEmptyTask()] });
@@ -173,6 +198,9 @@ export function JournalPage() {
           <p className="text-sm text-zinc-400 mt-0.5">Record your day, track your progress</p>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => save({})} className="gap-1.5 text-xs h-8 border-zinc-700 text-zinc-300 hover:text-white">
+            {saveStatus === "saving" ? "Saving..." : saveStatus === "saved" ? "Saved!" : "Save"}
+          </Button>
           <Button variant="outline" size="sm" onClick={handleDownloadMd} className="gap-1.5 text-xs h-8 border-zinc-700 text-zinc-300 hover:text-white">
             <Download className="w-3.5 h-3.5" />Export .md
           </Button>
@@ -219,10 +247,10 @@ export function JournalPage() {
                         {t.completed && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
                       </button>
                     </td>
-                    <td><Input placeholder="Task description" value={t.task} onChange={(e) => updateTask(t.id, "task", e.target.value)} className="bg-transparent border-none text-zinc-200 focus-visible:ring-1" /></td>
-                    <td><Input placeholder="Expected outcome" value={t.outcome} onChange={(e) => updateTask(t.id, "outcome", e.target.value)} className="bg-transparent border-none text-zinc-200 focus-visible:ring-1" /></td>
-                    <td><Input placeholder="System to follow" value={t.system} onChange={(e) => updateTask(t.id, "system", e.target.value)} className="bg-transparent border-none text-zinc-200 focus-visible:ring-1" /></td>
-                    <td><Input placeholder="Mission/purpose" value={t.mission} onChange={(e) => updateTask(t.id, "mission", e.target.value)} className="bg-transparent border-none text-zinc-200 focus-visible:ring-1" /></td>
+                    <td><TaskField placeholder="Task description" value={t.task} onChange={(value) => updateTask(t.id, "task", value)} /></td>
+                    <td><TaskField placeholder="Expected outcome" value={t.outcome} onChange={(value) => updateTask(t.id, "outcome", value)} /></td>
+                    <td><TaskField placeholder="System to follow" value={t.system} onChange={(value) => updateTask(t.id, "system", value)} /></td>
+                    <td><TaskField placeholder="Mission/purpose" value={t.mission} onChange={(value) => updateTask(t.id, "mission", value)} /></td>
                     <td className="text-center">
                       <button onClick={() => removeTask(t.id)} className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-500 hover:text-red-400"><Trash2 className="w-4 h-4" /></button>
                     </td>

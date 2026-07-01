@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { BarChart3, Brain, Heart, Activity, Filter, ListChecks, ChevronLeft, ChevronRight, Download } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,6 +40,20 @@ function getMonthRange(monthKey: string): { start: Date; end: Date } {
 }
 
 interface OutcomeItem { task: string; outcome: string; system: string; mission: string; completed: boolean; date: string; }
+
+const GROQ_API_KEY = 'import.meta.env.VITE_GROQ_API_KEY';
+
+async function summarizeReflectiveQuestions(facts: string[], mode: 'weekly' | 'monthly'): Promise<string> {
+  if (facts.length === 0) return 'No reflective questions to summarize.';
+  const prompt = `Summarize these ${mode} reflective journal entries into 3-5 concise bullet points with 1 actionable takeaway. Keep tone reflective, short, and easy to read.` + '\n\n' + facts.map((f,i) => `Entry ${i+1}: ${f}`).join('\n');
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${GROQ_API_KEY}` },
+    body: JSON.stringify({ model: 'llama-3.3-70b-versatile', messages: [{ role: 'user', content: prompt }], temperature: 0.4 })
+  });
+  const data = await res.json();
+  return data?.choices?.[0]?.message?.content || 'Unable to generate summary right now.';
+}
 
 const ChartTooltip = ({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number; name: string; color: string }>; label?: string }) => {
   if (!active || !payload?.length) return null;
@@ -177,6 +191,37 @@ export function InsightsPage() {
   const allSystems = useMemo(() => [...new Set(outcomes.map((o) => o.system).filter(Boolean))], [outcomes]);
   const allMissions = useMemo(() => [...new Set(outcomes.map((o) => o.mission).filter(Boolean))], [outcomes]);
 
+  const reflectiveQuestions = useMemo(() => {
+    const range = mode === 'weekly' ? getWeekRange() : getMonthRange(currentMonthKey);
+    const dates = getDatesInRange(range.start, range.end);
+    const items: string[] = [];
+    for (const d of dates) {
+      const e = entries[d];
+      if (!e) continue;
+      if ((e.bestThing || '').trim()) items.push(e.bestThing);
+      if ((e.proudThings || '').trim()) items.push(e.proudThings);
+      if ((e.lessonLearned || '').trim()) items.push(e.lessonLearned);
+      if ((e.excitedAbout || '').trim()) items.push(e.excitedAbout);
+    }
+    return items;
+  }, [entries, mode, currentMonthKey]);
+  const [summary, setSummary] = useState('');
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [showSummary, setShowSummary] = useState(false);
+
+  const generateSummary = useCallback(async () => {
+    setSummaryLoading(true);
+    try {
+      const result = await summarizeReflectiveQuestions(reflectiveQuestions, mode);
+      setSummary(result);
+      setShowSummary(true);
+    } catch (e) {
+      setSummary('Failed to load summary');
+    } finally {
+      setSummaryLoading(false);
+    }
+  }, [reflectiveQuestions, mode]);
+
   const filteredOutcomes = useMemo(() => {
     return outcomes.filter((o) => {
       if (filterSystem && o.system !== filterSystem) return false;
@@ -216,6 +261,24 @@ export function InsightsPage() {
         </div>
       </div>
 
+      <div className="mb-4 flex items-start justify-between flex-wrap gap-3">
+        <div>
+          <h3 className="text-sm font-medium text-zinc-300">Reflective Insights</h3>
+          <p className="text-xs text-zinc-500">Weekly/Monthly reflection patterns from your journal</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={()=>setShowSummary(s=>!s)} className="h-8 text-xs border-zinc-700 text-zinc-300 hover:text-white">
+            {showSummary ? 'Hide' : 'Show'} Summary
+          </Button>
+          <Button variant="outline" size="sm" onClick={generateSummary} disabled={summaryLoading} className="h-8 text-xs border-zinc-700 text-zinc-300 hover:text-white">
+            {summaryLoading ? 'Summarizing...' : 'Summarize'}
+          </Button>
+        </div>
+      </div>
+      {showSummary && (<Card className="mb-4 border-zinc-800">
+        <CardHeader><CardTitle className="text-sm text-zinc-100">{mode === 'weekly' ? 'Weekly' : 'Monthly'} Reflective Summary</CardTitle></CardHeader>
+        <CardContent><p className="text-xs text-zinc-300 whitespace-pre-line break-words">{summary || 'Click Summarize to generate insights'}</p></CardContent>
+      </Card>)}
       {!hasData ? (
         <Card className="glow-blue-subtle"><CardContent className="flex flex-col items-center justify-center py-16">
           <div className="w-16 h-16 rounded-2xl bg-blue-500/10 flex items-center justify-center mb-4"><BarChart3 className="w-8 h-8 text-blue-400" /></div>
