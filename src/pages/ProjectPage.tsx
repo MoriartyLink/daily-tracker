@@ -27,10 +27,10 @@ function createMilestone(): Milestone {
 }
 
 const PRIORITY_CONFIG = {
-  low: { label: "Low", bg: "bg-slate-100", text: "text-slate-500" },
-  medium: { label: "Med", bg: "bg-blue-50", text: "text-blue-600" },
-  high: { label: "High", bg: "bg-amber-50", text: "text-amber-600" },
-  urgent: { label: "Urgent", bg: "bg-red-50", text: "text-red-600" },
+  low: { label: "Low", bg: "bg-zinc-800", text: "text-zinc-300" },
+  medium: { label: "Med", bg: "bg-blue-500/15", text: "text-blue-400" },
+  high: { label: "High", bg: "bg-amber-500/15", text: "text-amber-400" },
+  urgent: { label: "Urgent", bg: "bg-red-500/15", text: "text-red-400" },
 };
 
 // ── Goals Showcase ──
@@ -45,40 +45,40 @@ function GoalsShowcase({ onCreateFromGoal }: { onCreateFromGoal: (title: string,
   const linked = goals.filter((g) => projectTitles.has(g.title.toLowerCase().trim()));
 
   return (
-    <Card className="border-blue-100 bg-blue-50/30">
+    <Card className="border-blue-500/15 bg-blue-500/5">
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2.5 text-sm">
-          <div className="w-6 h-6 rounded-lg bg-blue-100 flex items-center justify-center"><Target className="w-3.5 h-3.5 text-blue-600" /></div>
+          <div className="w-6 h-6 rounded-lg bg-blue-500/15 flex items-center justify-center"><Target className="w-3.5 h-3.5 text-blue-400" /></div>
           Your Goals
-          <span className="text-xs text-slate-400 font-normal ml-1">{linked.length}/{goals.length} linked to projects</span>
+          <span className="text-xs text-zinc-400 font-normal ml-1">{linked.length}/{goals.length} linked to projects</span>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">
         {/* Linked goals */}
         {linked.map((g) => (
-          <div key={g.id} className="flex items-center gap-3 p-2 rounded-lg bg-white/60 border border-blue-100/50">
+          <div key={g.id} className="flex items-center gap-3 p-2 rounded-lg bg-zinc-900 border border-blue-500/15">
             <Check className="w-4 h-4 text-emerald-500 shrink-0" />
-            <span className="text-sm text-slate-700 flex-1">{g.title}</span>
+            <span className="text-sm text-zinc-200 flex-1">{g.title}</span>
             <div className="w-20"><Progress value={g.progress} /></div>
-            <span className="text-xs text-blue-600 font-mono">{g.progress}%</span>
+            <span className="text-xs text-blue-400 font-mono">{g.progress}%</span>
           </div>
         ))}
         {/* Unlinked goals — recommend creating projects */}
         {unlinked.length > 0 && (
           <>
-            {linked.length > 0 && <Separator className="my-2 bg-blue-100" />}
+            {linked.length > 0 && <Separator className="my-2 bg-blue-500/15" />}
             <div className="flex items-center gap-2 mb-1">
               <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              <span className="text-xs font-medium text-slate-500">Recommended — Create projects for these goals</span>
+              <span className="text-xs font-medium text-zinc-400">Recommended — Create projects for these goals</span>
             </div>
             {unlinked.map((g) => (
-              <div key={g.id} className="flex items-center gap-3 p-2.5 rounded-lg bg-white border border-dashed border-blue-200 hover:border-blue-400 transition-colors group">
+              <div key={g.id} className="flex items-center gap-3 p-2.5 rounded-lg bg-zinc-900 border border-dashed border-zinc-700 hover:border-blue-500/50 transition-colors group">
                 <Target className="w-4 h-4 text-amber-400 shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-700">{g.title}</p>
-                  {g.description && <p className="text-xs text-slate-400 truncate">{g.description}</p>}
+                  <p className="text-sm font-medium text-zinc-200">{g.title}</p>
+                  {g.description && <p className="text-xs text-zinc-400 truncate">{g.description}</p>}
                 </div>
-                {g.targetDate && <span className="text-[10px] text-slate-400 flex items-center gap-1"><Calendar className="w-2.5 h-2.5" />{new Date(g.targetDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>}
+                {g.targetDate && <span className="text-[10px] text-zinc-400 flex items-center gap-1"><Calendar className="w-2.5 h-2.5" />{new Date(g.targetDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>}
                 <Button size="sm" variant="outline" className="opacity-0 group-hover:opacity-100 transition-opacity gap-1 text-xs h-7" onClick={() => onCreateFromGoal(g.title, g.description)}>
                   <Plus className="w-3 h-3" />Create Project
                 </Button>
@@ -101,37 +101,37 @@ function KanbanCardItem({ card, onUpdate, onDelete, onMove }: {
   const nextColumn = nextCol < KANBAN_COLUMNS.length - 1 ? KANBAN_COLUMNS[nextCol + 1] : null;
 
   return (
-    <div className="bg-white rounded-lg border border-slate-200 hover:border-slate-300 shadow-sm transition-all duration-200 group">
+    <div className="bg-zinc-950 rounded-lg border border-zinc-800 hover:border-zinc-700 shadow-sm transition-all duration-200 group">
       <div className="p-3 space-y-2">
         <div className="flex items-start gap-2">
-          <GripVertical className="w-3.5 h-3.5 text-slate-300 mt-0.5 shrink-0 cursor-grab" />
-          <input className="flex-1 bg-transparent text-sm text-slate-800 placeholder:text-slate-300 outline-none font-medium min-w-0" placeholder="Card title..." value={card.title} onChange={(e) => onUpdate({ title: e.target.value })} />
-          <button onClick={() => setExpanded(!expanded)} className="text-slate-300 hover:text-slate-500 cursor-pointer shrink-0">
+          <GripVertical className="w-3.5 h-3.5 text-zinc-500 mt-0.5 shrink-0 cursor-grab" />
+          <input className="flex-1 bg-transparent text-sm text-zinc-200 placeholder:text-zinc-600 outline-none font-medium min-w-0" placeholder="Card title..." value={card.title} onChange={(e) => onUpdate({ title: e.target.value })} />
+          <button onClick={() => setExpanded(!expanded)} className="text-zinc-500 hover:text-zinc-300 cursor-pointer shrink-0">
             {expanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
           </button>
         </div>
         <div className="flex items-center gap-2 pl-5">
           <span className={`text-[10px] px-1.5 py-0.5 rounded-md ${pri.bg} ${pri.text} font-medium`}>{pri.label}</span>
-          {card.dueDate && <span className="text-[10px] text-slate-400 flex items-center gap-1"><Calendar className="w-2.5 h-2.5" />{new Date(card.dueDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>}
-          {nextColumn && <button onClick={() => onMove(nextColumn.id)} className="ml-auto opacity-0 group-hover:opacity-100 text-[10px] text-slate-400 hover:text-blue-600 cursor-pointer flex items-center gap-0.5 transition-all"><ArrowRight className="w-2.5 h-2.5" />{nextColumn.title}</button>}
+          {card.dueDate && <span className="text-[10px] text-zinc-400 flex items-center gap-1"><Calendar className="w-2.5 h-2.5" />{new Date(card.dueDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>}
+          {nextColumn && <button onClick={() => onMove(nextColumn.id)} className="ml-auto opacity-0 group-hover:opacity-100 text-[10px] text-zinc-400 hover:text-blue-400 cursor-pointer flex items-center gap-0.5 transition-all"><ArrowRight className="w-2.5 h-2.5" />{nextColumn.title}</button>}
         </div>
       </div>
       {expanded && (
-        <div className="px-3 pb-3 pt-1 space-y-2.5 border-t border-slate-100">
-          <textarea className="w-full bg-slate-50 rounded-md text-xs text-slate-600 placeholder:text-slate-300 p-2 outline-none resize-none min-h-[50px] border border-slate-200 focus:border-blue-400" placeholder="Description..." value={card.description} onChange={(e) => onUpdate({ description: e.target.value })} />
+        <div className="px-3 pb-3 pt-1 space-y-2.5 border-t border-zinc-800">
+          <textarea className="w-full bg-zinc-900 rounded-md text-xs text-zinc-300 placeholder:text-zinc-600 p-2 outline-none resize-none min-h-[50px] border border-zinc-700 focus:border-blue-400" placeholder="Description..." value={card.description} onChange={(e) => onUpdate({ description: e.target.value })} />
           <div className="grid grid-cols-2 gap-2">
-            <div><label className="text-[10px] text-slate-400 block mb-1">Priority</label>
-              <select className="w-full bg-white border border-slate-200 rounded-md text-xs text-slate-600 p-1.5 outline-none cursor-pointer" value={card.priority} onChange={(e) => onUpdate({ priority: e.target.value as KanbanCard["priority"] })}>
+            <div><label className="text-[10px] text-zinc-400 block mb-1">Priority</label>
+              <select className="w-full bg-zinc-900 border border-zinc-700 rounded-md text-xs text-zinc-300 p-1.5 outline-none cursor-pointer" value={card.priority} onChange={(e) => onUpdate({ priority: e.target.value as KanbanCard["priority"] })}>
                 <option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="urgent">Urgent</option>
               </select></div>
-            <div><label className="text-[10px] text-slate-400 block mb-1">Due Date</label>
-              <input type="date" className="w-full bg-white border border-slate-200 rounded-md text-xs text-slate-600 p-1.5 outline-none" value={card.dueDate} onChange={(e) => onUpdate({ dueDate: e.target.value })} /></div>
+            <div><label className="text-[10px] text-zinc-400 block mb-1">Due Date</label>
+              <input type="date" className="w-full bg-zinc-900 border border-zinc-700 rounded-md text-xs text-zinc-300 p-1.5 outline-none" value={card.dueDate} onChange={(e) => onUpdate({ dueDate: e.target.value })} /></div>
           </div>
           <div className="flex justify-between items-center pt-1">
-            <select className="bg-white border border-slate-200 rounded-md text-xs text-slate-600 p-1 outline-none cursor-pointer" value={card.columnId} onChange={(e) => onMove(e.target.value as KanbanColumnId)}>
+            <select className="bg-zinc-900 border border-zinc-700 rounded-md text-xs text-zinc-300 p-1 outline-none cursor-pointer" value={card.columnId} onChange={(e) => onMove(e.target.value as KanbanColumnId)}>
               {KANBAN_COLUMNS.map((col) => <option key={col.id} value={col.id}>{col.title}</option>)}
             </select>
-            <button onClick={onDelete} className="text-slate-300 hover:text-red-400 cursor-pointer transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+            <button onClick={onDelete} className="text-zinc-500 hover:text-red-400 cursor-pointer transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
           </div>
         </div>
       )}
@@ -160,7 +160,7 @@ function ProjectDetail({ project, onUpdate, onBack }: { project: Project; onUpda
   return (
     <div className="fade-in space-y-5">
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="sm" onClick={onBack} className="gap-1 text-slate-400"><ChevronRight className="w-3.5 h-3.5 rotate-180" />Back</Button>
+        <Button variant="ghost" size="sm" onClick={onBack} className="gap-1 text-zinc-400"><ChevronRight className="w-3.5 h-3.5 rotate-180" />Back</Button>
         <Separator orientation="vertical" className="h-5" />
         <div className="w-3 h-3 rounded-full" style={{ backgroundColor: project.color }} />
         {editingInfo ? (
@@ -168,9 +168,9 @@ function ProjectDetail({ project, onUpdate, onBack }: { project: Project; onUpda
             <Input value={project.title} onChange={(e) => onUpdate({ title: e.target.value })} placeholder="Project name..." className="h-8 text-sm max-w-xs" autoFocus />
             <Button size="sm" variant="ghost" onClick={() => setEditingInfo(false)}><Check className="w-3.5 h-3.5" /></Button>
           </div>
-        ) : <h2 className="text-xl font-bold text-slate-900 cursor-pointer hover:text-blue-600 transition-colors" onClick={() => setEditingInfo(true)}>{project.title || "Untitled Project"}</h2>}
-        <div className="ml-auto flex items-center gap-3 text-xs text-slate-400">
-          <span>{done}/{total} done</span><div className="w-24"><Progress value={pct} /></div><span className="text-blue-600 font-mono">{pct}%</span>
+        ) : <h2 className="text-xl font-bold text-zinc-100 cursor-pointer hover:text-blue-400 transition-colors" onClick={() => setEditingInfo(true)}>{project.title || "Untitled Project"}</h2>}
+        <div className="ml-auto flex items-center gap-3 text-xs text-zinc-400">
+          <span>{done}/{total} done</span><div className="w-24"><Progress value={pct} /></div><span className="text-blue-400 font-mono">{pct}%</span>
         </div>
       </div>
 
@@ -178,7 +178,7 @@ function ProjectDetail({ project, onUpdate, onBack }: { project: Project; onUpda
         <Card className="slide-in-left"><CardContent className="p-4 space-y-3">
           <div><Label className="text-xs">Description</Label><Textarea value={project.description} onChange={(e) => onUpdate({ description: e.target.value })} placeholder="What is this project about?" className="mt-1 min-h-[60px] text-sm" /></div>
           <div><Label className="text-xs">Color</Label><div className="flex gap-2 mt-1.5">
-            {PROJECT_COLORS.map((c) => <button key={c} onClick={() => onUpdate({ color: c })} className={`w-7 h-7 rounded-lg cursor-pointer transition-all duration-200 ${project.color === c ? "ring-2 ring-slate-400 ring-offset-2 scale-110" : "hover:scale-110"}`} style={{ backgroundColor: c }} />)}
+            {PROJECT_COLORS.map((c) => <button key={c} onClick={() => onUpdate({ color: c })} className={`w-7 h-7 rounded-lg cursor-pointer transition-all duration-200 ${project.color === c ? "ring-2 ring-zinc-300 ring-offset-2 scale-110" : "hover:scale-110"}`} style={{ backgroundColor: c }} />)}
           </div></div>
         </CardContent></Card>
       )}
@@ -187,22 +187,22 @@ function ProjectDetail({ project, onUpdate, onBack }: { project: Project; onUpda
       <Card>
         <CardHeader className="pb-2"><div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2.5 cursor-pointer" onClick={() => setShowMilestones(!showMilestones)}>
-            <div className="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center"><MilestoneIcon className="w-4 h-4 text-amber-500" /></div>Milestones
-            <span className="text-xs text-slate-400 font-normal ml-1">{project.milestones.filter((m) => m.completed).length}/{project.milestones.length}</span>
-            {showMilestones ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronRight className="w-4 h-4 text-slate-400" />}
+            <div className="w-7 h-7 rounded-lg bg-amber-500/15 flex items-center justify-center"><MilestoneIcon className="w-4 h-4 text-amber-400" /></div>Milestones
+            <span className="text-xs text-zinc-400 font-normal ml-1">{project.milestones.filter((m) => m.completed).length}/{project.milestones.length}</span>
+            {showMilestones ? <ChevronDown className="w-4 h-4 text-zinc-400" /> : <ChevronRight className="w-4 h-4 text-zinc-400" />}
           </CardTitle>
           <Button size="sm" variant="outline" onClick={addMilestone} className="gap-1.5"><Plus className="w-3.5 h-3.5" />Add</Button>
         </div></CardHeader>
         {showMilestones && <CardContent className="space-y-2">
-          {project.milestones.length === 0 ? <p className="text-xs text-slate-400 text-center py-4">No milestones yet.</p> :
+          {project.milestones.length === 0 ? <p className="text-xs text-zinc-400 text-center py-4">No milestones yet.</p> :
             project.milestones.map((ms) => (
-              <div key={ms.id} className={`flex items-center gap-3 p-2.5 rounded-lg group transition-all ${ms.completed ? "bg-emerald-50 border border-emerald-100" : "bg-slate-50 border border-slate-100"}`}>
-                <button onClick={() => toggleMs(ms.id)} className={`w-5 h-5 rounded-full border-2 flex items-center justify-center cursor-pointer transition-all shrink-0 ${ms.completed ? "bg-emerald-500 border-emerald-500" : "border-slate-300 hover:border-blue-500"}`}>
+              <div key={ms.id} className={`flex items-center gap-3 p-2.5 rounded-lg group transition-all ${ms.completed ? "bg-emerald-500/10 border border-emerald-500/20" : "bg-zinc-900 border border-zinc-800"}`}>
+                <button onClick={() => toggleMs(ms.id)} className={`w-5 h-5 rounded-full border-2 flex items-center justify-center cursor-pointer transition-all shrink-0 ${ms.completed ? "bg-emerald-500 border-emerald-500" : "border-zinc-500 hover:border-blue-500"}`}>
                   {ms.completed && <Check className="w-3 h-3 text-white" />}
                 </button>
-                <input className={`flex-1 bg-transparent text-sm outline-none ${ms.completed ? "text-slate-400 line-through" : "text-slate-700"} placeholder:text-slate-300`} placeholder="Milestone title..." value={ms.title} onChange={(e) => updateMs(ms.id, { title: e.target.value })} />
-                <input type="date" className="bg-transparent text-xs text-slate-400 outline-none w-28" value={ms.targetDate} onChange={(e) => updateMs(ms.id, { targetDate: e.target.value })} />
-                <button onClick={() => deleteMs(ms.id)} className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-400 cursor-pointer transition-all"><Trash2 className="w-3.5 h-3.5" /></button>
+                <input className={`flex-1 bg-transparent text-sm outline-none ${ms.completed ? "text-zinc-500 line-through" : "text-zinc-200"} placeholder:text-zinc-600`} placeholder="Milestone title..." value={ms.title} onChange={(e) => updateMs(ms.id, { title: e.target.value })} />
+                <input type="date" className="bg-transparent text-xs text-zinc-400 outline-none w-28" value={ms.targetDate} onChange={(e) => updateMs(ms.id, { targetDate: e.target.value })} />
+                <button onClick={() => deleteMs(ms.id)} className="opacity-0 group-hover:opacity-100 text-zinc-500 hover:text-red-400 cursor-pointer transition-all"><Trash2 className="w-3.5 h-3.5" /></button>
               </div>
             ))}
         </CardContent>}
@@ -211,8 +211,8 @@ function ProjectDetail({ project, onUpdate, onBack }: { project: Project; onUpda
       {/* Kanban */}
       <div>
         <div className="flex items-center gap-2.5 mb-4">
-          <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center"><FolderKanban className="w-4 h-4 text-blue-500" /></div>
-          <h3 className="text-base font-semibold text-slate-900">Kanban Board</h3>
+          <div className="w-7 h-7 rounded-lg bg-blue-500/15 flex items-center justify-center"><FolderKanban className="w-4 h-4 text-blue-400" /></div>
+          <h3 className="text-base font-semibold text-zinc-100">Kanban Board</h3>
         </div>
         <div className="grid grid-cols-4 gap-4">
           {KANBAN_COLUMNS.map((col) => {
@@ -222,15 +222,15 @@ function ProjectDetail({ project, onUpdate, onBack }: { project: Project; onUpda
                 <div className="flex items-center justify-between px-1">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: col.color }} />
-                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{col.title}</span>
-                    <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-md font-mono">{colCards.length}</span>
+                    <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">{col.title}</span>
+                    <span className="text-[10px] bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded-md font-mono">{colCards.length}</span>
                   </div>
-                  <button onClick={() => addCard(col.id)} className="text-slate-300 hover:text-blue-500 cursor-pointer transition-colors"><Plus className="w-3.5 h-3.5" /></button>
+                  <button onClick={() => addCard(col.id)} className="text-zinc-500 hover:text-blue-400 cursor-pointer transition-colors"><Plus className="w-3.5 h-3.5" /></button>
                 </div>
-                <div className="space-y-2 min-h-[100px] p-2 rounded-xl bg-slate-50/80 border border-slate-100">
+                <div className="space-y-2 min-h-[100px] p-2 rounded-xl bg-zinc-950 border border-zinc-800">
                   {colCards.map((card) => <KanbanCardItem key={card.id} card={card} onUpdate={(u) => updateCard(card.id, u)} onDelete={() => deleteCard(card.id)} onMove={(to) => moveCard(card.id, to)} />)}
-                  {colCards.length === 0 && <div className="flex items-center justify-center h-16 text-[10px] text-slate-300">
-                    <button onClick={() => addCard(col.id)} className="cursor-pointer hover:text-slate-500 transition-colors flex items-center gap-1"><Plus className="w-3 h-3" />Add card</button>
+                  {colCards.length === 0 && <div className="flex items-center justify-center h-16 text-[10px] text-zinc-500">
+                    <button onClick={() => addCard(col.id)} className="cursor-pointer hover:text-zinc-300 transition-colors flex items-center gap-1"><Plus className="w-3 h-3" />Add card</button>
                   </div>}
                 </div>
               </div>
@@ -255,7 +255,7 @@ function ProjectList({ onSelect, onAdd }: { onSelect: (id: string) => void; onAd
   return (
     <div className="fade-in space-y-5">
       <div className="flex items-center justify-between">
-        <div><h2 className="text-2xl font-bold text-slate-900 tracking-tight">Projects</h2><p className="text-sm text-slate-400 mt-0.5">Manage projects with Kanban boards</p></div>
+        <div><h2 className="text-2xl font-bold text-zinc-100 tracking-tight">Projects</h2><p className="text-sm text-zinc-400 mt-0.5">Manage projects with Kanban boards</p></div>
         <Button onClick={() => onAdd()} className="gap-1.5"><Plus className="w-4 h-4" />New Project</Button>
       </div>
 
@@ -264,9 +264,9 @@ function ProjectList({ onSelect, onAdd }: { onSelect: (id: string) => void; onAd
 
       {active.length === 0 ? (
         <Card className="glow-blue-subtle"><CardContent className="flex flex-col items-center justify-center py-16">
-          <div className="w-16 h-16 rounded-2xl bg-blue-50 flex items-center justify-center mb-4"><FolderKanban className="w-8 h-8 text-blue-400" /></div>
-          <h3 className="text-lg font-semibold text-slate-900 mb-2">No Projects Yet</h3>
-          <p className="text-sm text-slate-400 text-center max-w-sm">Create your first project to start tracking milestones with a Kanban board.</p>
+          <div className="w-16 h-16 rounded-2xl bg-blue-500/10 flex items-center justify-center mb-4"><FolderKanban className="w-8 h-8 text-blue-400" /></div>
+          <h3 className="text-lg font-semibold text-zinc-100 mb-2">No Projects Yet</h3>
+          <p className="text-sm text-zinc-400 text-center max-w-sm">Create your first project to start tracking milestones with a Kanban board.</p>
         </CardContent></Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -276,16 +276,16 @@ function ProjectList({ onSelect, onAdd }: { onSelect: (id: string) => void; onAd
             const pct = total > 0 ? Math.round((done / total) * 100) : 0;
             const msDone = project.milestones.filter((m) => m.completed).length;
             return (
-              <Card key={project.id} className="group cursor-pointer hover:border-slate-300 hover:shadow-md transition-all duration-300" onClick={() => onSelect(project.id)}>
+              <Card key={project.id} className="group cursor-pointer hover:border-zinc-700 hover:shadow-md transition-all duration-300" onClick={() => onSelect(project.id)}>
                 <CardContent className="p-5 space-y-3">
                   <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3"><div className="w-3 h-3 rounded-full" style={{ backgroundColor: project.color }} /><h3 className="font-semibold text-slate-900 text-sm">{project.title || "Untitled Project"}</h3></div>
-                    <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 transition-colors" />
+                    <div className="flex items-center gap-3"><div className="w-3 h-3 rounded-full" style={{ backgroundColor: project.color }} /><h3 className="font-semibold text-zinc-100 text-sm">{project.title || "Untitled Project"}</h3></div>
+                    <ChevronRight className="w-4 h-4 text-zinc-500 group-hover:text-zinc-300 transition-colors" />
                   </div>
-                  {project.description && <p className="text-xs text-slate-400 line-clamp-2">{project.description}</p>}
-                  <div className="flex items-center gap-4 text-xs text-slate-400"><span>{total} cards</span><span>{msDone}/{project.milestones.length} milestones</span></div>
-                  <div className="space-y-1.5"><div className="flex justify-between text-xs"><span className="text-slate-400">Progress</span><span className="text-blue-600 font-mono">{pct}%</span></div><Progress value={pct} /></div>
-                  <button onClick={(e) => { e.stopPropagation(); archive(project.id); }} className="text-[10px] text-slate-300 hover:text-slate-500 transition-colors cursor-pointer flex items-center gap-1 mt-1"><Archive className="w-3 h-3" />Archive</button>
+                  {project.description && <p className="text-xs text-zinc-400 line-clamp-2">{project.description}</p>}
+                  <div className="flex items-center gap-4 text-xs text-zinc-400"><span>{total} cards</span><span>{msDone}/{project.milestones.length} milestones</span></div>
+                  <div className="space-y-1.5"><div className="flex justify-between text-xs"><span className="text-zinc-400">Progress</span><span className="text-blue-400 font-mono">{pct}%</span></div><Progress value={pct} /></div>
+                  <button onClick={(e) => { e.stopPropagation(); archive(project.id); }} className="text-[10px] text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer flex items-center gap-1 mt-1"><Archive className="w-3 h-3" />Archive</button>
                 </CardContent>
               </Card>
             );
@@ -294,13 +294,13 @@ function ProjectList({ onSelect, onAdd }: { onSelect: (id: string) => void; onAd
       )}
 
       {archived.length > 0 && <div>
-        <button onClick={() => setShowArchived(!showArchived)} className="flex items-center gap-2 text-xs text-slate-400 hover:text-slate-600 cursor-pointer transition-colors">
+        <button onClick={() => setShowArchived(!showArchived)} className="flex items-center gap-2 text-xs text-zinc-400 hover:text-zinc-300 cursor-pointer transition-colors">
           {showArchived ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}{archived.length} archived
         </button>
         {showArchived && <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mt-3 opacity-60">
-          {archived.map((p) => <Card key={p.id} className="border-slate-100"><CardContent className="p-4 flex items-center justify-between">
-            <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full opacity-50" style={{ backgroundColor: p.color }} /><span className="text-sm text-slate-400">{p.title || "Untitled"}</span></div>
-            <button onClick={() => unarchive(p.id)} className="text-[10px] text-slate-400 hover:text-slate-600 cursor-pointer flex items-center gap-1"><RotateCcw className="w-3 h-3" />Restore</button>
+          {archived.map((p) => <Card key={p.id} className="border-zinc-800"><CardContent className="p-4 flex items-center justify-between">
+            <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full opacity-50" style={{ backgroundColor: p.color }} /><span className="text-sm text-zinc-400">{p.title || "Untitled"}</span></div>
+            <button onClick={() => unarchive(p.id)} className="text-[10px] text-zinc-400 hover:text-zinc-300 cursor-pointer flex items-center gap-1"><RotateCcw className="w-3 h-3" />Restore</button>
           </CardContent></Card>)}
         </div>}
       </div>}

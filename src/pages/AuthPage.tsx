@@ -32,14 +32,14 @@ function LoginForm({ onSuccess }: { onSuccess: () => void }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="login-email" className="text-xs text-slate-300">Email</Label>
-        <Input id="login-email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required className="h-10 bg-slate-800/50 border-slate-700 text-slate-200 placeholder:text-slate-500" />
+        <Label htmlFor="login-email" className="text-xs text-zinc-300">Email</Label>
+        <Input id="login-email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required className="h-10 bg-zinc-900 border-zinc-700 text-zinc-200 placeholder:text-zinc-600" />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="login-password" className="text-xs text-slate-300">Password</Label>
+        <Label htmlFor="login-password" className="text-xs text-zinc-300">Password</Label>
         <div className="relative">
-          <Input id="login-password" type={showPassword ? "text" : "password"} placeholder="Enter your password" value={password} onChange={(e) => setPassword(e.target.value)} required className="h-10 pr-10 bg-slate-800/50 border-slate-700 text-slate-200 placeholder:text-slate-500" />
-          <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-300">
+          <Input id="login-password" type={showPassword ? "text" : "password"} placeholder="Enter your password" value={password} onChange={(e) => setPassword(e.target.value)} required className="h-10 pr-10 bg-zinc-900 border-zinc-700 text-zinc-200 placeholder:text-zinc-600" />
+          <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-300">
             {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
           </button>
         </div>
@@ -75,18 +75,18 @@ function SignupForm({ onSuccess }: { onSuccess: () => void }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="signup-name" className="text-xs text-slate-300">Full Name</Label>
-        <Input id="signup-name" type="text" placeholder="John Doe" value={name} onChange={(e) => setName(e.target.value)} required className="h-10 bg-slate-800/50 border-slate-700 text-slate-200 placeholder:text-slate-500" />
+        <Label htmlFor="signup-name" className="text-xs text-zinc-300">Full Name</Label>
+        <Input id="signup-name" type="text" placeholder="John Doe" value={name} onChange={(e) => setName(e.target.value)} required className="h-10 bg-zinc-900 border-zinc-700 text-zinc-200 placeholder:text-zinc-600" />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="signup-email" className="text-xs text-slate-300">Email</Label>
-        <Input id="signup-email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required className="h-10 bg-slate-800/50 border-slate-700 text-slate-200 placeholder:text-slate-500" />
+        <Label htmlFor="signup-email" className="text-xs text-zinc-300">Email</Label>
+        <Input id="signup-email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required className="h-10 bg-zinc-900 border-zinc-700 text-zinc-200 placeholder:text-zinc-600" />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="signup-password" className="text-xs text-slate-300">Password</Label>
+        <Label htmlFor="signup-password" className="text-xs text-zinc-300">Password</Label>
         <div className="relative">
-          <Input id="signup-password" type={showPassword ? "text" : "password"} placeholder="Create a strong password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} className="h-10 pr-10 bg-slate-800/50 border-slate-700 text-slate-200 placeholder:text-slate-500" />
-          <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-300">
+          <Input id="signup-password" type={showPassword ? "text" : "password"} placeholder="Create a strong password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} className="h-10 pr-10 bg-zinc-900 border-zinc-700 text-zinc-200 placeholder:text-zinc-600" />
+          <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-300">
             {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
           </button>
         </div>
@@ -103,20 +103,20 @@ export function AuthPage() {
   const handleSuccess = () => navigate("/");
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 to-slate-900 p-4">
-      <Card className="w-full max-w-sm shadow-lg border-slate-800 bg-slate-900">
+    <div className="min-h-screen flex items-center justify-center bg-black p-4">
+      <Card className="w-full max-w-sm shadow-lg border-zinc-800/60 bg-zinc-950/60 backdrop-blur-xl">
         <CardHeader className="space-y-1 text-center">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shadow-lg shadow-blue-500/20 mx-auto mb-2">
             <User className="w-5 h-5 text-white" />
           </div>
-          <CardTitle className="text-xl tracking-tight text-slate-100">Daily Tracker</CardTitle>
-          <CardDescription className="text-sm text-slate-400">Track · Reflect · Grow</CardDescription>
+          <CardTitle className="text-xl tracking-tight text-zinc-100">Daily Tracker</CardTitle>
+          <CardDescription className="text-sm text-zinc-400">Track · Reflect · Grow</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="login" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 h-9 p-1 bg-slate-800">
-              <TabsTrigger value="login" className="h-7 text-xs text-slate-300 data-[state=active]:bg-slate-700 data-[state=active]:text-slate-100">Login</TabsTrigger>
-              <TabsTrigger value="signup" className="h-7 text-xs text-slate-300 data-[state=active]:bg-slate-700 data-[state=active]:text-slate-100">Sign Up</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 h-9 p-1 bg-zinc-900">
+              <TabsTrigger value="login" className="h-7 text-xs text-zinc-300 data-[state=active]:bg-zinc-800 data-[state=active]:text-zinc-100">Login</TabsTrigger>
+              <TabsTrigger value="signup" className="h-7 text-xs text-zinc-300 data-[state=active]:bg-zinc-800 data-[state=active]:text-zinc-100">Sign Up</TabsTrigger>
             </TabsList>
             <TabsContent value="login" className="mt-4">
               <LoginForm onSuccess={handleSuccess} />

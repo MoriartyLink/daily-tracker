@@ -36,7 +36,7 @@ const Tabs = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElemen
 Tabs.displayName = "Tabs"
 
 const TabsList = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(({ className, ...props }, ref) => (
-  <div ref={ref} role="tablist" className={cn("inline-flex h-9 items-center justify-center rounded-lg bg-slate-800 p-1 text-slate-400", className)} {...props} />
+  <div ref={ref} role="tablist" className={cn("inline-flex h-9 items-center justify-center rounded-lg bg-zinc-900 p-1 text-zinc-400", className)} {...props} />
 ))
 TabsList.displayName = "TabsList"
 
@@ -52,7 +52,7 @@ const TabsTrigger = React.forwardRef<HTMLButtonElement, React.ButtonHTMLAttribut
       onClick={() => onValueChange(value)}
       className={cn(
         "inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:pointer-events-none disabled:opacity-50",
-        isActive ? "bg-slate-700 text-slate-100 shadow-sm" : "text-slate-400 hover:text-slate-100",
+        isActive ? "bg-zinc-800 text-zinc-100 shadow-sm" : "text-zinc-400 hover:text-zinc-100",
         className
       )}
       {...props}

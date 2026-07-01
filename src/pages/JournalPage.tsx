@@ -46,8 +46,8 @@ export function JournalPage() {
       {/* Date Navigation */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-slate-100 tracking-tight">Journal</h2>
-          <p className="text-sm text-slate-400 mt-0.5">Record your day, track your progress</p>
+          <h2 className="text-2xl font-bold text-zinc-100 tracking-tight">Journal</h2>
+          <p className="text-sm text-zinc-400 mt-0.5">Record your day, track your progress</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" onClick={goToPrevDay}><ChevronLeft className="w-4 h-4" /></Button>
@@ -64,7 +64,7 @@ export function JournalPage() {
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2.5">
               <div className="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center"><CheckCircle2 className="w-4 h-4 text-blue-400" /></div>
-              <span className="text-slate-100">Tasks</span>
+              <span className="text-zinc-100">Tasks</span>
             </CardTitle>
             <Button size="sm" onClick={addTask} className="h-8 gap-1.5"><Plus className="w-3.5 h-3.5" />Add Task</Button>
           </div>
@@ -84,19 +84,19 @@ export function JournalPage() {
               </thead>
               <tbody>
                 {entry.tasks.length === 0 && (
-                  <tr><td colSpan={6} className="text-center text-slate-500 text-sm py-8">No tasks yet. Click "Add Task" to start.</td></tr>
+                  <tr><td colSpan={6} className="text-center text-zinc-500 text-sm py-8">No tasks yet. Click "Add Task" to start.</td></tr>
                 )}
                 {entry.tasks.map((t) => (
                   <tr key={t.id} className={`group ${t.completed ? "opacity-50" : ""}`}>
                     <td className="text-center">
-                      <button onClick={() => updateTask(t.id, "completed", !t.completed)} className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${t.completed ? "bg-blue-500 border-blue-500" : "border-slate-600 hover:border-blue-400"}`}>
+                      <button onClick={() => updateTask(t.id, "completed", !t.completed)} className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${t.completed ? "bg-blue-500 border-blue-500" : "border-zinc-600 hover:border-blue-400"}`}>
                         {t.completed && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
                       </button>
                     </td>
-                    <td><Input placeholder="Task description" value={t.task} onChange={(e) => updateTask(t.id, "task", e.target.value)} className="bg-transparent border-none text-slate-200 focus-visible:ring-1" /></td>
-                    <td><Input placeholder="Expected outcome" value={t.outcome} onChange={(e) => updateTask(t.id, "outcome", e.target.value)} className="bg-transparent border-none text-slate-200 focus-visible:ring-1" /></td>
-                    <td><Input placeholder="System to follow" value={t.system} onChange={(e) => updateTask(t.id, "system", e.target.value)} className="bg-transparent border-none text-slate-200 focus-visible:ring-1" /></td>
-                    <td><Input placeholder="Mission/purpose" value={t.mission} onChange={(e) => updateTask(t.id, "mission", e.target.value)} className="bg-transparent border-none text-slate-200 focus-visible:ring-1" /></td>
+                    <td><Input placeholder="Task description" value={t.task} onChange={(e) => updateTask(t.id, "task", e.target.value)} className="bg-transparent border-none text-zinc-200 focus-visible:ring-1" /></td>
+                    <td><Input placeholder="Expected outcome" value={t.outcome} onChange={(e) => updateTask(t.id, "outcome", e.target.value)} className="bg-transparent border-none text-zinc-200 focus-visible:ring-1" /></td>
+                    <td><Input placeholder="System to follow" value={t.system} onChange={(e) => updateTask(t.id, "system", e.target.value)} className="bg-transparent border-none text-zinc-200 focus-visible:ring-1" /></td>
+                    <td><Input placeholder="Mission/purpose" value={t.mission} onChange={(e) => updateTask(t.id, "mission", e.target.value)} className="bg-transparent border-none text-zinc-200 focus-visible:ring-1" /></td>
                     <td className="text-center">
                       <button onClick={() => removeTask(t.id)} className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-500 hover:text-red-400"><Trash2 className="w-4 h-4" /></button>
                     </td>
@@ -139,7 +139,7 @@ export function JournalPage() {
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2.5">
               <div className="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center"><Heart className="w-4 h-4 text-emerald-400" /></div>
-              <span className="text-slate-100">Physical</span>
+              <span className="text-zinc-100">Physical</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -151,10 +151,10 @@ export function JournalPage() {
                 </div>
               ))}
             </RadioGroup>
-            <Separator className="my-2 bg-slate-700/50" />
+            <Separator className="my-2 bg-zinc-700/50" />
             <div>
-              <Label className="text-xs text-slate-400">Note</Label>
-              <Input placeholder="Any notes about your physical state..." value={entry.physicalNote} onChange={(e) => save({ physicalNote: e.target.value })} className="mt-1.5 h-9 text-xs bg-slate-800/50 border-slate-700 text-slate-200 placeholder:text-slate-500" />
+              <Label className="text-xs text-zinc-400">Note</Label>
+              <Input placeholder="Any notes about your physical state..." value={entry.physicalNote} onChange={(e) => save({ physicalNote: e.target.value })} className="mt-1.5 h-9 text-xs bg-zinc-900 border-zinc-700 text-zinc-200 placeholder:text-zinc-600" />
             </div>
           </CardContent>
         </Card>
@@ -166,23 +166,23 @@ export function JournalPage() {
               <div className="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-400"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
               </div>
-              <span className="text-slate-100">Stats</span>
+              <span className="text-zinc-100">Stats</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-xs text-slate-400">Total Tasks</span>
+                <span className="text-xs text-zinc-400">Total Tasks</span>
                 <span className="text-sm font-bold text-blue-400">{entry.tasks.length}</span>
               </div>
-              <Separator className="bg-slate-700/50" />
+              <Separator className="bg-zinc-700/50" />
               <div className="flex justify-between items-center">
-                <span className="text-xs text-slate-400">Completed</span>
+                <span className="text-xs text-zinc-400">Completed</span>
                 <span className="text-sm font-bold text-emerald-400">{entry.tasks.filter((t) => t.completed).length}</span>
               </div>
-              <Separator className="bg-slate-700/50" />
+              <Separator className="bg-zinc-700/50" />
               <div className="flex justify-between items-center">
-                <span className="text-xs text-slate-400">Completion</span>
+                <span className="text-xs text-zinc-400">Completion</span>
                 <span className="text-sm font-bold text-purple-400">{entry.tasks.length > 0 ? Math.round((entry.tasks.filter((t) => t.completed).length / entry.tasks.length) * 100) : 0}%</span>
               </div>
             </div>
@@ -201,7 +201,7 @@ export function JournalPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Textarea placeholder="Write about your day... What happened? What did you learn? How do you feel?" value={entry.journal} onChange={(e) => save({ journal: e.target.value })} className="min-h-[200px] text-sm leading-relaxed bg-slate-800/50 border-slate-700 text-slate-200 placeholder:text-slate-500" />
+          <Textarea placeholder="Write about your day... What happened? What did you learn? How do you feel?" value={entry.journal} onChange={(e) => save({ journal: e.target.value })} className="min-h-[200px] text-sm leading-relaxed bg-zinc-900 border-zinc-700 text-zinc-200 placeholder:text-zinc-600" />
         </CardContent>
       </Card>
     </div>

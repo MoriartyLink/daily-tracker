@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { BarChart3, TrendingUp, Brain, Heart, Image, GitBranch, Activity } from "lucide-react";
+import { BarChart3, Brain, Heart, Image, GitBranch, Activity } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,8 +33,8 @@ export function InsightsPage() {
   const ChartTooltip = ({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number; name: string; color: string }>; label?: string }) => {
     if (!active || !payload?.length) return null;
     return (
-      <div className="bg-slate-800 border border-slate-700 rounded-lg p-3 text-xs shadow-xl">
-        <p className="text-slate-300 mb-1.5 font-medium">{label}</p>
+      <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-3 text-xs shadow-xl">
+        <p className="text-zinc-300 mb-1.5 font-medium">{label}</p>
         {payload.map((p, i) => <p key={i} style={{ color: p.color }}>{p.name}: <span className="font-semibold">{p.value}</span></p>)}
       </div>
     );
