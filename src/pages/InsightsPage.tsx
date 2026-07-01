@@ -3,7 +3,6 @@ import { BarChart3, Brain, Heart, Activity, Filter, ListChecks, ChevronLeft, Che
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { useData } from "@/contexts/DataContext";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
@@ -52,7 +51,7 @@ const ChartTooltip = ({ active, payload, label }: { active?: boolean; payload?: 
   );
 };
 
-function mentalLabel(v: number) { return v === 1 ? "Low" : v === 2 ? "Medium" : "High"; }
+
 
 function generateInsightsMd(
   mode: string,
