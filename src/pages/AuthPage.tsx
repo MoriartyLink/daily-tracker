@@ -24,7 +24,12 @@ function LoginForm({ onSuccess }: { onSuccess: () => void }) {
       await login(email, password);
       onSuccess();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
+      const msg = err instanceof Error ? err.message : "Login failed";
+      if (msg.includes("Supabase not configured") || msg.includes("supabase")) {
+        setError("Supabase is not configured. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your environment.");
+      } else {
+        setError(msg);
+      }
     }
     setLoading(false);
   };
@@ -67,7 +72,12 @@ function SignupForm({ onSuccess }: { onSuccess: () => void }) {
       await signup(email, password);
       onSuccess();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Signup failed");
+      const msg = err instanceof Error ? err.message : "Signup failed";
+      if (msg.includes("Supabase not configured") || msg.includes("supabase")) {
+        setError("Supabase is not configured. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your environment.");
+      } else {
+        setError(msg);
+      }
     }
     setLoading(false);
   };

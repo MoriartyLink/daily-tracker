@@ -7,7 +7,7 @@ export interface Task {
   completed: boolean;
 }
 
-export type MentalRating = 1 | 2 | 3;
+export type MentalRating = 1 | 2 | 3 | 4 | 5;
 
 export interface MentalStatus {
   morning: MentalRating;
@@ -24,6 +24,7 @@ export interface DailyEntry {
   mentalStatus: MentalStatus;
   physicalStatus: PhysicalStatus;
   physicalNote: string;
+  mentalNote: string;
   journal: string;
 }
 
@@ -46,7 +47,7 @@ export interface Goal {
 export type TimeRange = "weekly" | "monthly";
 
 // Project & Kanban types
-export type KanbanColumnId = "backlog" | "todo" | "in-progress" | "done";
+export type KanbanColumnId = "backlog" | "todo" | "in-progress" | "done" | "blocked";
 
 export interface KanbanCard {
   id: string;
@@ -85,6 +86,7 @@ export const KANBAN_COLUMNS: { id: KanbanColumnId; title: string; color: string 
   { id: "backlog", title: "Backlog", color: "#71717a" },
   { id: "todo", title: "To Do", color: "#3b82f6" },
   { id: "in-progress", title: "In Progress", color: "#f59e0b" },
+  { id: "blocked", title: "Blocked", color: "#ef4444" },
   { id: "done", title: "Done", color: "#10b981" },
 ];
 

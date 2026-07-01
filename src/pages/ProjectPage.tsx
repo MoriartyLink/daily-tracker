@@ -1,8 +1,8 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import {
   Plus, Trash2, ChevronRight, ChevronDown, FolderKanban,
   Calendar, GripVertical, Check, ArrowRight,
-  Milestone as MilestoneIcon, Archive, RotateCcw, Target, Sparkles,
+  Milestone as MilestoneIcon, Archive, RotateCcw,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,67 +33,11 @@ const PRIORITY_CONFIG = {
   urgent: { label: "Urgent", bg: "bg-red-500/15", text: "text-red-400" },
 };
 
-// ── Goals Showcase ──
-function GoalsShowcase({ onCreateFromGoal }: { onCreateFromGoal: (title: string, desc: string) => void }) {
-  const { profile, projects } = useData();
-  const goals = profile.goals.filter((g) => g.title.trim());
-  if (goals.length === 0) return null;
 
-  // Find goals not yet linked to a project (by title match)
-  const projectTitles = new Set(projects.map((p) => p.title.toLowerCase().trim()));
-  const unlinked = goals.filter((g) => !projectTitles.has(g.title.toLowerCase().trim()));
-  const linked = goals.filter((g) => projectTitles.has(g.title.toLowerCase().trim()));
-
-  return (
-    <Card className="border-blue-500/15 bg-blue-500/5">
-      <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2.5 text-sm">
-          <div className="w-6 h-6 rounded-lg bg-blue-500/15 flex items-center justify-center"><Target className="w-3.5 h-3.5 text-blue-400" /></div>
-          Your Goals
-          <span className="text-xs text-zinc-400 font-normal ml-1">{linked.length}/{goals.length} linked to projects</span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-2">
-        {/* Linked goals */}
-        {linked.map((g) => (
-          <div key={g.id} className="flex items-center gap-3 p-2 rounded-lg bg-zinc-900 border border-blue-500/15">
-            <Check className="w-4 h-4 text-emerald-500 shrink-0" />
-            <span className="text-sm text-zinc-200 flex-1">{g.title}</span>
-            <div className="w-20"><Progress value={g.progress} /></div>
-            <span className="text-xs text-blue-400 font-mono">{g.progress}%</span>
-          </div>
-        ))}
-        {/* Unlinked goals — recommend creating projects */}
-        {unlinked.length > 0 && (
-          <>
-            {linked.length > 0 && <Separator className="my-2 bg-blue-500/15" />}
-            <div className="flex items-center gap-2 mb-1">
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              <span className="text-xs font-medium text-zinc-400">Recommended — Create projects for these goals</span>
-            </div>
-            {unlinked.map((g) => (
-              <div key={g.id} className="flex items-center gap-3 p-2.5 rounded-lg bg-zinc-900 border border-dashed border-zinc-700 hover:border-blue-500/50 transition-colors group">
-                <Target className="w-4 h-4 text-amber-400 shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-zinc-200">{g.title}</p>
-                  {g.description && <p className="text-xs text-zinc-400 truncate">{g.description}</p>}
-                </div>
-                {g.targetDate && <span className="text-[10px] text-zinc-400 flex items-center gap-1"><Calendar className="w-2.5 h-2.5" />{new Date(g.targetDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>}
-                <Button size="sm" variant="outline" className="opacity-0 group-hover:opacity-100 transition-opacity gap-1 text-xs h-7" onClick={() => onCreateFromGoal(g.title, g.description)}>
-                  <Plus className="w-3 h-3" />Create Project
-                </Button>
-              </div>
-            ))}
-          </>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
 
 // ── Kanban Card ──
-function KanbanCardItem({ card, onUpdate, onDelete, onMove }: {
-  card: KanbanCard; onUpdate: (u: Partial<KanbanCard>) => void; onDelete: () => void; onMove: (to: KanbanColumnId) => void;
+function KanbanCardItem({ card, onUpdate, onDelete, onMove, onDragStart, onDragEnd }: {
+  card: KanbanCard; onUpdate: (u: Partial<KanbanCard>) => void; onDelete: () => void; onMove: (to: KanbanColumnId) => void; onDragStart?: (e: React.DragEvent, id: string) => void; onDragEnd?: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const pri = PRIORITY_CONFIG[card.priority];
@@ -101,7 +45,7 @@ function KanbanCardItem({ card, onUpdate, onDelete, onMove }: {
   const nextColumn = nextCol < KANBAN_COLUMNS.length - 1 ? KANBAN_COLUMNS[nextCol + 1] : null;
 
   return (
-    <div className="bg-zinc-950 rounded-lg border border-zinc-800 hover:border-zinc-700 shadow-sm transition-all duration-200 group">
+    <div draggable={true} onDragStart={(e) => onDragStart?.(e, card.id)} onDragEnd={() => onDragEnd?.()} className="bg-zinc-950 rounded-lg border border-zinc-800 hover:border-zinc-700 shadow-sm transition-all duration-200 group cursor-grab active:cursor-grabbing">
       <div className="p-3 space-y-2">
         <div className="flex items-start gap-2">
           <GripVertical className="w-3.5 h-3.5 text-zinc-500 mt-0.5 shrink-0 cursor-grab" />
@@ -143,10 +87,18 @@ function KanbanCardItem({ card, onUpdate, onDelete, onMove }: {
 function ProjectDetail({ project, onUpdate, onBack }: { project: Project; onUpdate: (u: Partial<Project>) => void; onBack: () => void }) {
   const [showMilestones, setShowMilestones] = useState(true);
   const [editingInfo, setEditingInfo] = useState(!project.title);
+  const dragCardId = useRef<string | null>(null);
+  const [dragOverCol, setDragOverCol] = useState<KanbanColumnId | null>(null);
 
   const updateCard = (id: string, u: Partial<KanbanCard>) => onUpdate({ cards: project.cards.map((c) => c.id === id ? { ...c, ...u } : c) });
   const deleteCard = (id: string) => onUpdate({ cards: project.cards.filter((c) => c.id !== id) });
   const moveCard = (id: string, to: KanbanColumnId) => { const n = project.cards.filter((c) => c.columnId === to).length; onUpdate({ cards: project.cards.map((c) => c.id === id ? { ...c, columnId: to, order: n, completedAt: to === "done" ? new Date().toISOString() : "" } : c) }); };
+
+  const handleDragStart = (e: React.DragEvent, id: string) => { dragCardId.current = id; e.dataTransfer.effectAllowed = "move"; };
+  const handleDragEnd = () => { dragCardId.current = null; setDragOverCol(null); };
+  const handleDragOver = (e: React.DragEvent, colId: KanbanColumnId) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDragOverCol(colId); };
+  const handleDragLeave = () => { setDragOverCol(null); };
+  const handleDrop = (e: React.DragEvent, colId: KanbanColumnId) => { e.preventDefault(); if (dragCardId.current) { moveCard(dragCardId.current, colId); dragCardId.current = null; } setDragOverCol(null); };
   const addCard = (col: KanbanColumnId) => { const n = project.cards.filter((c) => c.columnId === col).length; onUpdate({ cards: [...project.cards, createCard(col, n)] }); };
   const addMilestone = () => onUpdate({ milestones: [...project.milestones, createMilestone()] });
   const updateMs = (id: string, u: Partial<Milestone>) => onUpdate({ milestones: project.milestones.map((m) => m.id === id ? { ...m, ...u } : m) });
@@ -214,9 +166,10 @@ function ProjectDetail({ project, onUpdate, onBack }: { project: Project; onUpda
           <div className="w-7 h-7 rounded-lg bg-blue-500/15 flex items-center justify-center"><FolderKanban className="w-4 h-4 text-blue-400" /></div>
           <h3 className="text-base font-semibold text-zinc-100">Kanban Board</h3>
         </div>
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${KANBAN_COLUMNS.length}, minmax(0, 1fr))` }}>
           {KANBAN_COLUMNS.map((col) => {
             const colCards = project.cards.filter((c) => c.columnId === col.id).sort((a, b) => a.order - b.order);
+            const isOver = dragOverCol === col.id;
             return (
               <div key={col.id} className="space-y-3">
                 <div className="flex items-center justify-between px-1">
@@ -227,10 +180,15 @@ function ProjectDetail({ project, onUpdate, onBack }: { project: Project; onUpda
                   </div>
                   <button onClick={() => addCard(col.id)} className="text-zinc-500 hover:text-blue-400 cursor-pointer transition-colors"><Plus className="w-3.5 h-3.5" /></button>
                 </div>
-                <div className="space-y-2 min-h-[100px] p-2 rounded-xl bg-zinc-950 border border-zinc-800">
-                  {colCards.map((card) => <KanbanCardItem key={card.id} card={card} onUpdate={(u) => updateCard(card.id, u)} onDelete={() => deleteCard(card.id)} onMove={(to) => moveCard(card.id, to)} />)}
-                  {colCards.length === 0 && <div className="flex items-center justify-center h-16 text-[10px] text-zinc-500">
-                    <button onClick={() => addCard(col.id)} className="cursor-pointer hover:text-zinc-300 transition-colors flex items-center gap-1"><Plus className="w-3 h-3" />Add card</button>
+                <div
+                  onDragOver={(e) => handleDragOver(e, col.id)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, col.id)}
+                  className={`space-y-2 min-h-[100px] p-2 rounded-xl bg-zinc-950 border transition-all duration-200 ${isOver ? "border-blue-500/60 bg-blue-500/5 shadow-[0_0_15px_rgba(59,130,246,0.12)]" : "border-zinc-800"}`}
+                >
+                  {colCards.map((card) => <KanbanCardItem key={card.id} card={card} onUpdate={(u) => updateCard(card.id, u)} onDelete={() => deleteCard(card.id)} onMove={(to) => moveCard(card.id, to)} onDragStart={handleDragStart} onDragEnd={handleDragEnd} />)}
+                  {colCards.length === 0 && <div className={`flex items-center justify-center h-16 text-[10px] ${isOver ? "text-blue-400" : "text-zinc-500"}`}>
+                    {isOver ? <span className="flex items-center gap-1">Drop here</span> : <button onClick={() => addCard(col.id)} className="cursor-pointer hover:text-zinc-300 transition-colors flex items-center gap-1"><Plus className="w-3 h-3" />Add card</button>}
                   </div>}
                 </div>
               </div>
@@ -258,9 +216,6 @@ function ProjectList({ onSelect, onAdd }: { onSelect: (id: string) => void; onAd
         <div><h2 className="text-2xl font-bold text-zinc-100 tracking-tight">Projects</h2><p className="text-sm text-zinc-400 mt-0.5">Manage projects with Kanban boards</p></div>
         <Button onClick={() => onAdd()} className="gap-1.5"><Plus className="w-4 h-4" />New Project</Button>
       </div>
-
-      {/* Goals showcase */}
-      <GoalsShowcase onCreateFromGoal={(title, desc) => onAdd(title, desc)} />
 
       {active.length === 0 ? (
         <Card className="glow-blue-subtle"><CardContent className="flex flex-col items-center justify-center py-16">
