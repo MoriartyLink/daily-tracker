@@ -87,6 +87,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
               id: row.id, date: row.date, tasks: row.tasks,
               mentalStatus: row.mental_status, physicalStatus: row.physical_status,
               physicalNote: row.physical_note, mentalNote: row.mental_note, journal: row.journal,
+              bestThing: row.best_thing, proudThings: row.proud_things,
+              lessonLearned: row.lesson_learned, lessonChange: row.lesson_change,
+              excitedAbout: row.excited_about,
             };
           }
           setEntries(map);
@@ -116,7 +119,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
         supabase.from("daily_entries").upsert({
           id: entry.id, date, tasks: entry.tasks,
           mental_status: entry.mentalStatus, physical_status: entry.physicalStatus,
-          physical_note: entry.physicalNote, mental_note: entry.mentalNote, journal: entry.journal, updated_at: new Date().toISOString(),
+          physical_note: entry.physicalNote, mental_note: entry.mentalNote, journal: entry.journal,
+          best_thing: entry.bestThing, proud_things: entry.proudThings,
+          lesson_learned: entry.lessonLearned, lesson_change: entry.lessonChange,
+          excited_about: entry.excitedAbout,
+          updated_at: new Date().toISOString(),
         }, { onConflict: "date" }).then(() => {});
       } else { lsSet("daily-tracker-entries", next); }
       return next;

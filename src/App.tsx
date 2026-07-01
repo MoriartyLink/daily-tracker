@@ -16,7 +16,7 @@ function AppLayout({ children }: { children: React.ReactNode }) {
       <Sidebar />
       <main
         className="p-6 pb-12 transition-all duration-300 ease-in-out"
-        style={{ marginLeft: collapsed ? 0 : 220 }}
+        style={{ marginLeft: collapsed ? 60 : 220 }}
       >
         {children}
       </main>

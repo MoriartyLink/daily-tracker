@@ -49,7 +49,7 @@ function KanbanCardItem({ card, onUpdate, onDelete, onMove, onDragStart, onDragE
       <div className="p-3 space-y-2">
         <div className="flex items-start gap-2">
           <GripVertical className="w-3.5 h-3.5 text-zinc-500 mt-0.5 shrink-0 cursor-grab" />
-          <input className="flex-1 bg-transparent text-sm text-zinc-200 placeholder:text-zinc-600 outline-none font-medium min-w-0" placeholder="Card title..." value={card.title} onChange={(e) => onUpdate({ title: e.target.value })} />
+          <input className="flex-1 bg-transparent text-sm text-zinc-200 placeholder:text-zinc-600 outline-none font-medium min-w-0 break-words whitespace-normal max-w-full" placeholder="Card title..." value={card.title} onChange={(e) => onUpdate({ title: e.target.value })} />
           <button onClick={() => setExpanded(!expanded)} className="text-zinc-500 hover:text-zinc-300 cursor-pointer shrink-0">
             {expanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
           </button>
@@ -62,14 +62,14 @@ function KanbanCardItem({ card, onUpdate, onDelete, onMove, onDragStart, onDragE
       </div>
       {expanded && (
         <div className="px-3 pb-3 pt-1 space-y-2.5 border-t border-zinc-800">
-          <textarea className="w-full bg-zinc-900 rounded-md text-xs text-zinc-300 placeholder:text-zinc-600 p-2 outline-none resize-none min-h-[50px] border border-zinc-700 focus:border-blue-400" placeholder="Description..." value={card.description} onChange={(e) => onUpdate({ description: e.target.value })} />
+          <textarea className="w-full bg-zinc-900 rounded-md text-xs text-zinc-300 placeholder:text-zinc-600 p-2 outline-none resize-y min-h-[50px] border border-zinc-700 focus:border-blue-400 whitespace-pre-wrap break-words max-w-full" placeholder="Description..." value={card.description} onChange={(e) => onUpdate({ description: e.target.value })} />
           <div className="grid grid-cols-2 gap-2">
             <div><label className="text-[10px] text-zinc-400 block mb-1">Priority</label>
-              <select className="w-full bg-zinc-900 border border-zinc-700 rounded-md text-xs text-zinc-300 p-1.5 outline-none cursor-pointer" value={card.priority} onChange={(e) => onUpdate({ priority: e.target.value as KanbanCard["priority"] })}>
+              <select className="w-full max-w-full bg-zinc-900 border border-zinc-700 rounded-md text-xs text-zinc-300 p-1.5 outline-none cursor-pointer" value={card.priority} onChange={(e) => onUpdate({ priority: e.target.value as KanbanCard["priority"] })}>
                 <option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="urgent">Urgent</option>
               </select></div>
             <div><label className="text-[10px] text-zinc-400 block mb-1">Due Date</label>
-              <input type="date" className="w-full bg-zinc-900 border border-zinc-700 rounded-md text-xs text-zinc-300 p-1.5 outline-none" value={card.dueDate} onChange={(e) => onUpdate({ dueDate: e.target.value })} /></div>
+              <input type="date" className="w-full max-w-full bg-zinc-900 border border-zinc-700 rounded-md text-xs text-zinc-300 p-1.5 outline-none" value={card.dueDate} onChange={(e) => onUpdate({ dueDate: e.target.value })} /></div>
           </div>
           <div className="flex justify-between items-center pt-1">
             <select className="bg-zinc-900 border border-zinc-700 rounded-md text-xs text-zinc-300 p-1 outline-none cursor-pointer" value={card.columnId} onChange={(e) => onMove(e.target.value as KanbanColumnId)}>

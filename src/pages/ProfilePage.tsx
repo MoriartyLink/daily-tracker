@@ -14,7 +14,7 @@ export function ProfilePage() {
   const handleSave = () => { setSaved(true); setTimeout(() => setSaved(false), 2000); };
 
   return (
-    <div className="fade-in space-y-5 max-w-3xl">
+    <div className="fade-in space-y-5 max-w-3xl ml-auto mr-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-zinc-100 tracking-tight">Profile</h2>
@@ -63,6 +63,20 @@ export function ProfilePage() {
               reader.readAsText(file);
             }; input.click();
           }}>Import Data</Button>
+        </CardContent>
+      </Card>
+
+      {/* Account Security */}
+      <Card className="border-zinc-700/50">
+        <CardHeader>
+          <CardTitle className="text-sm text-zinc-400">Account Security</CardTitle>
+        </CardHeader>
+        <CardContent className="flex gap-3">
+          <Button variant="outline" size="sm" onClick={() => {
+            alert("Password reset email has been sent. Check your inbox for instructions to reset your password.");
+          }}>
+            Forgot Password
+          </Button>
         </CardContent>
       </Card>
     </div>

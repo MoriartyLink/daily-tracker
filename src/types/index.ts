@@ -26,6 +26,12 @@ export interface DailyEntry {
   physicalNote: string;
   mentalNote: string;
   journal: string;
+  // Reflective questions
+  bestThing: string;
+  proudThings: string;
+  lessonLearned: string;
+  lessonChange: string;
+  excitedAbout: string;
 }
 
 export interface UserProfile {

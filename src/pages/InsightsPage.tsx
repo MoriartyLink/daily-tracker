@@ -131,7 +131,8 @@ export function InsightsPage() {
   const { chartData, outcomes, stats } = useMemo(() => {
     const range = mode === "weekly" ? getWeekRange() : getMonthRange(currentMonthKey);
     const dates = getDatesInRange(range.start, range.end);
-    const chart: Array<{ date: string; label: string; tasksCompleted: number; totalTasks: number; mentalAvg: number; physical: number }> = [];
+    const today = new Date().toISOString().split("T")[0];
+    const chart: Array<{ date: string; label: string; tasksCompleted: number; totalTasks: number; mentalAvg: number; physical: number; isFuture: boolean; hasData: boolean }> = [];
     const outs: OutcomeItem[] = [];
 
     for (const dateStr of dates) {
@@ -139,7 +140,19 @@ export function InsightsPage() {
       const mentalAvg = entry ? (entry.mentalStatus.morning + entry.mentalStatus.afternoon + entry.mentalStatus.night) / 3 : 0;
       const physVal = entry?.physicalStatus === "good" ? 3 : entry?.physicalStatus === "sick" ? 2 : entry?.physicalStatus === "critical" ? 1 : 0;
       const completed = entry ? entry.tasks.filter((t) => t.completed).length : 0;
-      chart.push({ date: dateStr, label: getShortDate(dateStr), tasksCompleted: completed, totalTasks: entry?.tasks.length || 0, mentalAvg: Math.round(mentalAvg * 10) / 10, physical: physVal });
+      const isFuture = dateStr > today;
+      const hasData = entry && (entry.tasks.length > 0 || entry.mentalNote.trim() !== "" || entry.physicalNote.trim() !== "" || entry.journal.trim() !== "" || entry.mentalStatus.morning !== 2 || entry.mentalStatus.afternoon !== 2 || entry.mentalStatus.night !== 2 || entry.physicalStatus !== "good");
+      
+      chart.push({ 
+        date: dateStr, 
+        label: getShortDate(dateStr), 
+        tasksCompleted: completed, 
+        totalTasks: entry?.tasks.length || 0, 
+        mentalAvg: Math.round(mentalAvg * 10) / 10, 
+        physical: physVal,
+        isFuture,
+        hasData
+      });
 
       if (entry) {
         for (const t of entry.tasks) {
@@ -150,12 +163,14 @@ export function InsightsPage() {
       }
     }
 
-    const daysWithData = chart.filter((d) => d.mentalAvg > 0);
-    const totalTasks = chart.reduce((s, d) => s + d.tasksCompleted, 0);
+    // Filter out dates with no data AND future dates for cleaner visualization
+    const chartWithData = chart.filter((d) => d.hasData && !d.isFuture);
+    const daysWithData = chartWithData.filter((d) => d.mentalAvg > 0);
+    const totalTasks = chartWithData.reduce((s, d) => s + d.tasksCompleted, 0);
     const avgMental = daysWithData.length > 0 ? (daysWithData.reduce((s, d) => s + d.mentalAvg, 0) / daysWithData.length).toFixed(1) : "0";
-    const healthyDays = chart.filter((d) => d.physical === 3).length;
+    const healthyDays = chartWithData.filter((d) => d.physical === 3).length;
 
-    return { chartData: chart, outcomes: outs, stats: { totalTasks, avgMental, healthyDays, totalDays: dates.length } };
+    return { chartData: chartWithData, outcomes: outs, stats: { totalTasks, avgMental, healthyDays, totalDays: chartWithData.length } };
   }, [entries, mode, currentMonthKey]);
 
   // Collect unique systems and missions for filter
