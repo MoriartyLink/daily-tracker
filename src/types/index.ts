@@ -7,7 +7,7 @@ export interface Task {
   completed: boolean;
 }
 
-export type MentalRating = 1 | 2 | 3 | 4 | 5 | 6 | 7;
+export type MentalRating = 1 | 2 | 3;
 
 export interface MentalStatus {
   morning: MentalRating;
@@ -28,7 +28,9 @@ export interface DailyEntry {
 }
 
 export interface UserProfile {
+  id?: string;
   name: string;
+  email: string;
   avatar: string;
   goals: Goal[];
 }
@@ -42,3 +44,51 @@ export interface Goal {
 }
 
 export type TimeRange = "weekly" | "monthly";
+
+// Project & Kanban types
+export type KanbanColumnId = "backlog" | "todo" | "in-progress" | "done";
+
+export interface KanbanCard {
+  id: string;
+  title: string;
+  description: string;
+  columnId: KanbanColumnId;
+  priority: "low" | "medium" | "high" | "urgent";
+  tags: string[];
+  dueDate: string;
+  createdAt: string;
+  completedAt: string;
+  order: number;
+}
+
+export interface Milestone {
+  id: string;
+  title: string;
+  description: string;
+  targetDate: string;
+  completed: boolean;
+  completedAt: string;
+}
+
+export interface Project {
+  id: string;
+  title: string;
+  description: string;
+  color: string; // hex color for accent
+  milestones: Milestone[];
+  cards: KanbanCard[];
+  createdAt: string;
+  archived: boolean;
+}
+
+export const KANBAN_COLUMNS: { id: KanbanColumnId; title: string; color: string }[] = [
+  { id: "backlog", title: "Backlog", color: "#71717a" },
+  { id: "todo", title: "To Do", color: "#3b82f6" },
+  { id: "in-progress", title: "In Progress", color: "#f59e0b" },
+  { id: "done", title: "Done", color: "#10b981" },
+];
+
+export const PROJECT_COLORS = [
+  "#3b82f6", "#8b5cf6", "#ec4899", "#f59e0b",
+  "#10b981", "#06b6d4", "#ef4444", "#6366f1",
+];

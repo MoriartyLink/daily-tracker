@@ -1,0 +1,329 @@
+import { useState, useCallback } from "react";
+import {
+  Plus, Trash2, ChevronRight, ChevronDown, FolderKanban,
+  Calendar, GripVertical, Check, ArrowRight,
+  Milestone as MilestoneIcon, Archive, RotateCcw, Target, Sparkles,
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
+import { useData } from "@/contexts/DataContext";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
+import type { Project, KanbanCard, Milestone, KanbanColumnId } from "@/types";
+import { KANBAN_COLUMNS, PROJECT_COLORS } from "@/types";
+
+function createProject(title = "", description = ""): Project {
+  return { id: crypto.randomUUID(), title, description, color: PROJECT_COLORS[Math.floor(Math.random() * PROJECT_COLORS.length)], milestones: [], cards: [], createdAt: new Date().toISOString(), archived: false };
+}
+function createCard(columnId: KanbanColumnId, order: number): KanbanCard {
+  return { id: crypto.randomUUID(), title: "", description: "", columnId, priority: "medium", tags: [], dueDate: "", createdAt: new Date().toISOString(), completedAt: "", order };
+}
+function createMilestone(): Milestone {
+  return { id: crypto.randomUUID(), title: "", description: "", targetDate: "", completed: false, completedAt: "" };
+}
+
+const PRIORITY_CONFIG = {
+  low: { label: "Low", bg: "bg-slate-100", text: "text-slate-500" },
+  medium: { label: "Med", bg: "bg-blue-50", text: "text-blue-600" },
+  high: { label: "High", bg: "bg-amber-50", text: "text-amber-600" },
+  urgent: { label: "Urgent", bg: "bg-red-50", text: "text-red-600" },
+};
+
+// ── Goals Showcase ──
+function GoalsShowcase({ onCreateFromGoal }: { onCreateFromGoal: (title: string, desc: string) => void }) {
+  const { profile, projects } = useData();
+  const goals = profile.goals.filter((g) => g.title.trim());
+  if (goals.length === 0) return null;
+
+  // Find goals not yet linked to a project (by title match)
+  const projectTitles = new Set(projects.map((p) => p.title.toLowerCase().trim()));
+  const unlinked = goals.filter((g) => !projectTitles.has(g.title.toLowerCase().trim()));
+  const linked = goals.filter((g) => projectTitles.has(g.title.toLowerCase().trim()));
+
+  return (
+    <Card className="border-blue-100 bg-blue-50/30">
+      <CardHeader className="pb-2">
+        <CardTitle className="flex items-center gap-2.5 text-sm">
+          <div className="w-6 h-6 rounded-lg bg-blue-100 flex items-center justify-center"><Target className="w-3.5 h-3.5 text-blue-600" /></div>
+          Your Goals
+          <span className="text-xs text-slate-400 font-normal ml-1">{linked.length}/{goals.length} linked to projects</span>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {/* Linked goals */}
+        {linked.map((g) => (
+          <div key={g.id} className="flex items-center gap-3 p-2 rounded-lg bg-white/60 border border-blue-100/50">
+            <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+            <span className="text-sm text-slate-700 flex-1">{g.title}</span>
+            <div className="w-20"><Progress value={g.progress} /></div>
+            <span className="text-xs text-blue-600 font-mono">{g.progress}%</span>
+          </div>
+        ))}
+        {/* Unlinked goals — recommend creating projects */}
+        {unlinked.length > 0 && (
+          <>
+            {linked.length > 0 && <Separator className="my-2 bg-blue-100" />}
+            <div className="flex items-center gap-2 mb-1">
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              <span className="text-xs font-medium text-slate-500">Recommended — Create projects for these goals</span>
+            </div>
+            {unlinked.map((g) => (
+              <div key={g.id} className="flex items-center gap-3 p-2.5 rounded-lg bg-white border border-dashed border-blue-200 hover:border-blue-400 transition-colors group">
+                <Target className="w-4 h-4 text-amber-400 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-slate-700">{g.title}</p>
+                  {g.description && <p className="text-xs text-slate-400 truncate">{g.description}</p>}
+                </div>
+                {g.targetDate && <span className="text-[10px] text-slate-400 flex items-center gap-1"><Calendar className="w-2.5 h-2.5" />{new Date(g.targetDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>}
+                <Button size="sm" variant="outline" className="opacity-0 group-hover:opacity-100 transition-opacity gap-1 text-xs h-7" onClick={() => onCreateFromGoal(g.title, g.description)}>
+                  <Plus className="w-3 h-3" />Create Project
+                </Button>
+              </div>
+            ))}
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── Kanban Card ──
+function KanbanCardItem({ card, onUpdate, onDelete, onMove }: {
+  card: KanbanCard; onUpdate: (u: Partial<KanbanCard>) => void; onDelete: () => void; onMove: (to: KanbanColumnId) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const pri = PRIORITY_CONFIG[card.priority];
+  const nextCol = KANBAN_COLUMNS.findIndex((c) => c.id === card.columnId);
+  const nextColumn = nextCol < KANBAN_COLUMNS.length - 1 ? KANBAN_COLUMNS[nextCol + 1] : null;
+
+  return (
+    <div className="bg-white rounded-lg border border-slate-200 hover:border-slate-300 shadow-sm transition-all duration-200 group">
+      <div className="p-3 space-y-2">
+        <div className="flex items-start gap-2">
+          <GripVertical className="w-3.5 h-3.5 text-slate-300 mt-0.5 shrink-0 cursor-grab" />
+          <input className="flex-1 bg-transparent text-sm text-slate-800 placeholder:text-slate-300 outline-none font-medium min-w-0" placeholder="Card title..." value={card.title} onChange={(e) => onUpdate({ title: e.target.value })} />
+          <button onClick={() => setExpanded(!expanded)} className="text-slate-300 hover:text-slate-500 cursor-pointer shrink-0">
+            {expanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+          </button>
+        </div>
+        <div className="flex items-center gap-2 pl-5">
+          <span className={`text-[10px] px-1.5 py-0.5 rounded-md ${pri.bg} ${pri.text} font-medium`}>{pri.label}</span>
+          {card.dueDate && <span className="text-[10px] text-slate-400 flex items-center gap-1"><Calendar className="w-2.5 h-2.5" />{new Date(card.dueDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>}
+          {nextColumn && <button onClick={() => onMove(nextColumn.id)} className="ml-auto opacity-0 group-hover:opacity-100 text-[10px] text-slate-400 hover:text-blue-600 cursor-pointer flex items-center gap-0.5 transition-all"><ArrowRight className="w-2.5 h-2.5" />{nextColumn.title}</button>}
+        </div>
+      </div>
+      {expanded && (
+        <div className="px-3 pb-3 pt-1 space-y-2.5 border-t border-slate-100">
+          <textarea className="w-full bg-slate-50 rounded-md text-xs text-slate-600 placeholder:text-slate-300 p-2 outline-none resize-none min-h-[50px] border border-slate-200 focus:border-blue-400" placeholder="Description..." value={card.description} onChange={(e) => onUpdate({ description: e.target.value })} />
+          <div className="grid grid-cols-2 gap-2">
+            <div><label className="text-[10px] text-slate-400 block mb-1">Priority</label>
+              <select className="w-full bg-white border border-slate-200 rounded-md text-xs text-slate-600 p-1.5 outline-none cursor-pointer" value={card.priority} onChange={(e) => onUpdate({ priority: e.target.value as KanbanCard["priority"] })}>
+                <option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="urgent">Urgent</option>
+              </select></div>
+            <div><label className="text-[10px] text-slate-400 block mb-1">Due Date</label>
+              <input type="date" className="w-full bg-white border border-slate-200 rounded-md text-xs text-slate-600 p-1.5 outline-none" value={card.dueDate} onChange={(e) => onUpdate({ dueDate: e.target.value })} /></div>
+          </div>
+          <div className="flex justify-between items-center pt-1">
+            <select className="bg-white border border-slate-200 rounded-md text-xs text-slate-600 p-1 outline-none cursor-pointer" value={card.columnId} onChange={(e) => onMove(e.target.value as KanbanColumnId)}>
+              {KANBAN_COLUMNS.map((col) => <option key={col.id} value={col.id}>{col.title}</option>)}
+            </select>
+            <button onClick={onDelete} className="text-slate-300 hover:text-red-400 cursor-pointer transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Project Detail ──
+function ProjectDetail({ project, onUpdate, onBack }: { project: Project; onUpdate: (u: Partial<Project>) => void; onBack: () => void }) {
+  const [showMilestones, setShowMilestones] = useState(true);
+  const [editingInfo, setEditingInfo] = useState(!project.title);
+
+  const updateCard = (id: string, u: Partial<KanbanCard>) => onUpdate({ cards: project.cards.map((c) => c.id === id ? { ...c, ...u } : c) });
+  const deleteCard = (id: string) => onUpdate({ cards: project.cards.filter((c) => c.id !== id) });
+  const moveCard = (id: string, to: KanbanColumnId) => { const n = project.cards.filter((c) => c.columnId === to).length; onUpdate({ cards: project.cards.map((c) => c.id === id ? { ...c, columnId: to, order: n, completedAt: to === "done" ? new Date().toISOString() : "" } : c) }); };
+  const addCard = (col: KanbanColumnId) => { const n = project.cards.filter((c) => c.columnId === col).length; onUpdate({ cards: [...project.cards, createCard(col, n)] }); };
+  const addMilestone = () => onUpdate({ milestones: [...project.milestones, createMilestone()] });
+  const updateMs = (id: string, u: Partial<Milestone>) => onUpdate({ milestones: project.milestones.map((m) => m.id === id ? { ...m, ...u } : m) });
+  const deleteMs = (id: string) => onUpdate({ milestones: project.milestones.filter((m) => m.id !== id) });
+  const toggleMs = (id: string) => { const ms = project.milestones.find((m) => m.id === id); if (ms) updateMs(id, { completed: !ms.completed, completedAt: !ms.completed ? new Date().toISOString() : "" }); };
+
+  const done = project.cards.filter((c) => c.columnId === "done").length;
+  const total = project.cards.length;
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+
+  return (
+    <div className="fade-in space-y-5">
+      <div className="flex items-center gap-3">
+        <Button variant="ghost" size="sm" onClick={onBack} className="gap-1 text-slate-400"><ChevronRight className="w-3.5 h-3.5 rotate-180" />Back</Button>
+        <Separator orientation="vertical" className="h-5" />
+        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: project.color }} />
+        {editingInfo ? (
+          <div className="flex-1 flex items-center gap-2">
+            <Input value={project.title} onChange={(e) => onUpdate({ title: e.target.value })} placeholder="Project name..." className="h-8 text-sm max-w-xs" autoFocus />
+            <Button size="sm" variant="ghost" onClick={() => setEditingInfo(false)}><Check className="w-3.5 h-3.5" /></Button>
+          </div>
+        ) : <h2 className="text-xl font-bold text-slate-900 cursor-pointer hover:text-blue-600 transition-colors" onClick={() => setEditingInfo(true)}>{project.title || "Untitled Project"}</h2>}
+        <div className="ml-auto flex items-center gap-3 text-xs text-slate-400">
+          <span>{done}/{total} done</span><div className="w-24"><Progress value={pct} /></div><span className="text-blue-600 font-mono">{pct}%</span>
+        </div>
+      </div>
+
+      {editingInfo && (
+        <Card className="slide-in-left"><CardContent className="p-4 space-y-3">
+          <div><Label className="text-xs">Description</Label><Textarea value={project.description} onChange={(e) => onUpdate({ description: e.target.value })} placeholder="What is this project about?" className="mt-1 min-h-[60px] text-sm" /></div>
+          <div><Label className="text-xs">Color</Label><div className="flex gap-2 mt-1.5">
+            {PROJECT_COLORS.map((c) => <button key={c} onClick={() => onUpdate({ color: c })} className={`w-7 h-7 rounded-lg cursor-pointer transition-all duration-200 ${project.color === c ? "ring-2 ring-slate-400 ring-offset-2 scale-110" : "hover:scale-110"}`} style={{ backgroundColor: c }} />)}
+          </div></div>
+        </CardContent></Card>
+      )}
+
+      {/* Milestones */}
+      <Card>
+        <CardHeader className="pb-2"><div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2.5 cursor-pointer" onClick={() => setShowMilestones(!showMilestones)}>
+            <div className="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center"><MilestoneIcon className="w-4 h-4 text-amber-500" /></div>Milestones
+            <span className="text-xs text-slate-400 font-normal ml-1">{project.milestones.filter((m) => m.completed).length}/{project.milestones.length}</span>
+            {showMilestones ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronRight className="w-4 h-4 text-slate-400" />}
+          </CardTitle>
+          <Button size="sm" variant="outline" onClick={addMilestone} className="gap-1.5"><Plus className="w-3.5 h-3.5" />Add</Button>
+        </div></CardHeader>
+        {showMilestones && <CardContent className="space-y-2">
+          {project.milestones.length === 0 ? <p className="text-xs text-slate-400 text-center py-4">No milestones yet.</p> :
+            project.milestones.map((ms) => (
+              <div key={ms.id} className={`flex items-center gap-3 p-2.5 rounded-lg group transition-all ${ms.completed ? "bg-emerald-50 border border-emerald-100" : "bg-slate-50 border border-slate-100"}`}>
+                <button onClick={() => toggleMs(ms.id)} className={`w-5 h-5 rounded-full border-2 flex items-center justify-center cursor-pointer transition-all shrink-0 ${ms.completed ? "bg-emerald-500 border-emerald-500" : "border-slate-300 hover:border-blue-500"}`}>
+                  {ms.completed && <Check className="w-3 h-3 text-white" />}
+                </button>
+                <input className={`flex-1 bg-transparent text-sm outline-none ${ms.completed ? "text-slate-400 line-through" : "text-slate-700"} placeholder:text-slate-300`} placeholder="Milestone title..." value={ms.title} onChange={(e) => updateMs(ms.id, { title: e.target.value })} />
+                <input type="date" className="bg-transparent text-xs text-slate-400 outline-none w-28" value={ms.targetDate} onChange={(e) => updateMs(ms.id, { targetDate: e.target.value })} />
+                <button onClick={() => deleteMs(ms.id)} className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-400 cursor-pointer transition-all"><Trash2 className="w-3.5 h-3.5" /></button>
+              </div>
+            ))}
+        </CardContent>}
+      </Card>
+
+      {/* Kanban */}
+      <div>
+        <div className="flex items-center gap-2.5 mb-4">
+          <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center"><FolderKanban className="w-4 h-4 text-blue-500" /></div>
+          <h3 className="text-base font-semibold text-slate-900">Kanban Board</h3>
+        </div>
+        <div className="grid grid-cols-4 gap-4">
+          {KANBAN_COLUMNS.map((col) => {
+            const colCards = project.cards.filter((c) => c.columnId === col.id).sort((a, b) => a.order - b.order);
+            return (
+              <div key={col.id} className="space-y-3">
+                <div className="flex items-center justify-between px-1">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: col.color }} />
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{col.title}</span>
+                    <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-md font-mono">{colCards.length}</span>
+                  </div>
+                  <button onClick={() => addCard(col.id)} className="text-slate-300 hover:text-blue-500 cursor-pointer transition-colors"><Plus className="w-3.5 h-3.5" /></button>
+                </div>
+                <div className="space-y-2 min-h-[100px] p-2 rounded-xl bg-slate-50/80 border border-slate-100">
+                  {colCards.map((card) => <KanbanCardItem key={card.id} card={card} onUpdate={(u) => updateCard(card.id, u)} onDelete={() => deleteCard(card.id)} onMove={(to) => moveCard(card.id, to)} />)}
+                  {colCards.length === 0 && <div className="flex items-center justify-center h-16 text-[10px] text-slate-300">
+                    <button onClick={() => addCard(col.id)} className="cursor-pointer hover:text-slate-500 transition-colors flex items-center gap-1"><Plus className="w-3 h-3" />Add card</button>
+                  </div>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Project List ──
+function ProjectList({ onSelect, onAdd }: { onSelect: (id: string) => void; onAdd: (title?: string, desc?: string) => void }) {
+  const { projects, setProjects } = useData();
+  const [showArchived, setShowArchived] = useState(false);
+  const active = projects.filter((p) => !p.archived);
+  const archived = projects.filter((p) => p.archived);
+
+  const archive = (id: string) => setProjects((prev) => prev.map((p) => p.id === id ? { ...p, archived: true } : p));
+  const unarchive = (id: string) => setProjects((prev) => prev.map((p) => p.id === id ? { ...p, archived: false } : p));
+
+  return (
+    <div className="fade-in space-y-5">
+      <div className="flex items-center justify-between">
+        <div><h2 className="text-2xl font-bold text-slate-900 tracking-tight">Projects</h2><p className="text-sm text-slate-400 mt-0.5">Manage projects with Kanban boards</p></div>
+        <Button onClick={() => onAdd()} className="gap-1.5"><Plus className="w-4 h-4" />New Project</Button>
+      </div>
+
+      {/* Goals showcase */}
+      <GoalsShowcase onCreateFromGoal={(title, desc) => onAdd(title, desc)} />
+
+      {active.length === 0 ? (
+        <Card className="glow-blue-subtle"><CardContent className="flex flex-col items-center justify-center py-16">
+          <div className="w-16 h-16 rounded-2xl bg-blue-50 flex items-center justify-center mb-4"><FolderKanban className="w-8 h-8 text-blue-400" /></div>
+          <h3 className="text-lg font-semibold text-slate-900 mb-2">No Projects Yet</h3>
+          <p className="text-sm text-slate-400 text-center max-w-sm">Create your first project to start tracking milestones with a Kanban board.</p>
+        </CardContent></Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {active.map((project) => {
+            const done = project.cards.filter((c) => c.columnId === "done").length;
+            const total = project.cards.length;
+            const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+            const msDone = project.milestones.filter((m) => m.completed).length;
+            return (
+              <Card key={project.id} className="group cursor-pointer hover:border-slate-300 hover:shadow-md transition-all duration-300" onClick={() => onSelect(project.id)}>
+                <CardContent className="p-5 space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3"><div className="w-3 h-3 rounded-full" style={{ backgroundColor: project.color }} /><h3 className="font-semibold text-slate-900 text-sm">{project.title || "Untitled Project"}</h3></div>
+                    <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 transition-colors" />
+                  </div>
+                  {project.description && <p className="text-xs text-slate-400 line-clamp-2">{project.description}</p>}
+                  <div className="flex items-center gap-4 text-xs text-slate-400"><span>{total} cards</span><span>{msDone}/{project.milestones.length} milestones</span></div>
+                  <div className="space-y-1.5"><div className="flex justify-between text-xs"><span className="text-slate-400">Progress</span><span className="text-blue-600 font-mono">{pct}%</span></div><Progress value={pct} /></div>
+                  <button onClick={(e) => { e.stopPropagation(); archive(project.id); }} className="text-[10px] text-slate-300 hover:text-slate-500 transition-colors cursor-pointer flex items-center gap-1 mt-1"><Archive className="w-3 h-3" />Archive</button>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      {archived.length > 0 && <div>
+        <button onClick={() => setShowArchived(!showArchived)} className="flex items-center gap-2 text-xs text-slate-400 hover:text-slate-600 cursor-pointer transition-colors">
+          {showArchived ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}{archived.length} archived
+        </button>
+        {showArchived && <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mt-3 opacity-60">
+          {archived.map((p) => <Card key={p.id} className="border-slate-100"><CardContent className="p-4 flex items-center justify-between">
+            <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full opacity-50" style={{ backgroundColor: p.color }} /><span className="text-sm text-slate-400">{p.title || "Untitled"}</span></div>
+            <button onClick={() => unarchive(p.id)} className="text-[10px] text-slate-400 hover:text-slate-600 cursor-pointer flex items-center gap-1"><RotateCcw className="w-3 h-3" />Restore</button>
+          </CardContent></Card>)}
+        </div>}
+      </div>}
+    </div>
+  );
+}
+
+// ── Main ──
+export function ProjectPage() {
+  const { projects, setProjects } = useData();
+  const [selectedId, setSelectedId] = useLocalStorage<string | null>("project-selected", null);
+  const selected = projects.find((p) => p.id === selectedId) || null;
+
+  const addProject = useCallback((title?: string, desc?: string) => {
+    const p = createProject(title, desc);
+    setProjects((prev) => [...prev, p]);
+    setSelectedId(p.id);
+  }, [setProjects, setSelectedId]);
+
+  const updateProject = useCallback((id: string, u: Partial<Project>) => {
+    setProjects((prev) => prev.map((p) => p.id === id ? { ...p, ...u } : p));
+  }, [setProjects]);
+
+  if (selected) return <ProjectDetail project={selected} onUpdate={(u) => updateProject(selected.id, u)} onBack={() => setSelectedId(null)} />;
+  return <ProjectList onSelect={setSelectedId} onAdd={addProject} />;
+}

@@ -1,52 +1,79 @@
 import * as React from "react"
-import * as TabsPrimitive from "@radix-ui/react-tabs"
 import { cn } from "@/lib/utils"
 
-const Tabs = TabsPrimitive.Root
+const TabsContext = React.createContext<{
+  value: string
+  onValueChange: (value: string) => void
+} | null>(null)
 
-const TabsList = React.forwardRef<
-  React.ComponentRef<typeof TabsPrimitive.List>,
-  React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>
->(({ className, ...props }, ref) => (
-  <TabsPrimitive.List
-    ref={ref}
-    className={cn(
-      "inline-flex h-10 items-center justify-center rounded-lg bg-zinc-800/80 p-1 text-zinc-400",
-      className
-    )}
-    {...props}
-  />
-))
-TabsList.displayName = TabsPrimitive.List.displayName
+function useTabsContext() {
+  const ctx = React.useContext(TabsContext)
+  if (!ctx) throw new Error("Tabs components must be used within Tabs")
+  return ctx
+}
 
-const TabsTrigger = React.forwardRef<
-  React.ComponentRef<typeof TabsPrimitive.Trigger>,
-  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>
->(({ className, ...props }, ref) => (
-  <TabsPrimitive.Trigger
-    ref={ref}
-    className={cn(
-      "inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-blue-500/25 cursor-pointer hover:text-zinc-200",
-      className
-    )}
-    {...props}
-  />
-))
-TabsTrigger.displayName = TabsPrimitive.Trigger.displayName
+const Tabs = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement> & {
+  value?: string
+  defaultValue?: string
+  onValueChange?: (value: string) => void
+}>(({ className, value, defaultValue, onValueChange, children, ...props }, ref) => {
+  const [internalValue, setInternalValue] = React.useState(defaultValue || value || "")
+  React.useEffect(() => {
+    if (value !== undefined) setInternalValue(value)
+  }, [value])
+  const handleChange = (newValue: string) => {
+    setInternalValue(newValue)
+    onValueChange?.(newValue)
+  }
+  return (
+    <TabsContext.Provider value={{ value: internalValue, onValueChange: handleChange }}>
+      <div ref={ref} className={cn("", className)} {...props} data-state={internalValue}>
+        {children}
+      </div>
+    </TabsContext.Provider>
+  )
+})
+Tabs.displayName = "Tabs"
 
-const TabsContent = React.forwardRef<
-  React.ComponentRef<typeof TabsPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Content>
->(({ className, ...props }, ref) => (
-  <TabsPrimitive.Content
-    ref={ref}
-    className={cn(
-      "mt-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
-      className
-    )}
-    {...props}
-  />
+const TabsList = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(({ className, ...props }, ref) => (
+  <div ref={ref} role="tablist" className={cn("inline-flex h-9 items-center justify-center rounded-lg bg-slate-800 p-1 text-slate-400", className)} {...props} />
 ))
-TabsContent.displayName = TabsPrimitive.Content.displayName
+TabsList.displayName = "TabsList"
+
+const TabsTrigger = React.forwardRef<HTMLButtonElement, React.ButtonHTMLAttributes<HTMLButtonElement> & { value: string }>(({ className, value, ...props }, ref) => {
+  const { value: selectedValue, onValueChange } = useTabsContext()
+  const isActive = selectedValue === value
+  return (
+    <button
+      ref={ref}
+      role="tab"
+      aria-selected={isActive}
+      data-state={isActive ? "active" : "inactive"}
+      onClick={() => onValueChange(value)}
+      className={cn(
+        "inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:pointer-events-none disabled:opacity-50",
+        isActive ? "bg-slate-700 text-slate-100 shadow-sm" : "text-slate-400 hover:text-slate-100",
+        className
+      )}
+      {...props}
+    />
+  )
+})
+TabsTrigger.displayName = "TabsTrigger"
+
+const TabsContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement> & { value: string }>(({ className, value, ...props }, ref) => {
+  const { value: selectedValue } = useTabsContext()
+  const isActive = selectedValue === value
+  return (
+    <div
+      ref={ref}
+      role="tabpanel"
+      data-state={isActive ? "active" : "inactive"}
+      className={cn("mt-2", !isActive && "hidden", className)}
+      {...props}
+    />
+  )
+})
+TabsContent.displayName = "TabsContent"
 
 export { Tabs, TabsList, TabsTrigger, TabsContent }
