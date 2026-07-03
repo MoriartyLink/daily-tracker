@@ -28,3 +28,9 @@ dist-ssr
 *.sln
 *.sw?
 .copilot-specs-cache/
+
+# Electron build output
+release/
+
+# Local vault data
+data/

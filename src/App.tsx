@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { HashRouter, Routes, Route, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 import { DataProvider } from "@/contexts/DataContext";
 import { SidebarProvider, useSidebar } from "@/contexts/SidebarContext";
 import { Sidebar } from "@/components/Sidebar";
@@ -6,13 +7,28 @@ import { JournalPage } from "@/pages/JournalPage";
 import { InsightsPage } from "@/pages/InsightsPage";
 import { ProjectPage } from "@/pages/ProjectPage";
 import { ProfilePage } from "@/pages/ProfilePage";
-import { AuthPage } from "@/pages/AuthPage";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
+import "@/types/electron";
+
+function MenuListener() {
+  const navigate = useNavigate();
+  const { setCollapsed, collapsed } = useSidebar();
+
+  useEffect(() => {
+    if (!window.electronAPI) return;
+    const cleanups = [
+      window.electronAPI.onMenuNavigate((path: string) => navigate(path)),
+      window.electronAPI.onMenuToggleSidebar(() => setCollapsed(!collapsed)),
+    ];
+    return () => cleanups.forEach(fn => fn());
+  }, [navigate, setCollapsed, collapsed]);
+
+  return null;
+}
 
 function AppLayout({ children }: { children: React.ReactNode }) {
   const { collapsed } = useSidebar();
   return (
-    <ProtectedRoute>
+    <>
       <Sidebar />
       <main
         className="p-6 pb-12 transition-all duration-300 ease-in-out"
@@ -20,17 +36,17 @@ function AppLayout({ children }: { children: React.ReactNode }) {
       >
         {children}
       </main>
-    </ProtectedRoute>
+    </>
   );
 }
 
 function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <DataProvider>
         <SidebarProvider>
+          <MenuListener />
           <Routes>
-            <Route path="/auth" element={<AuthPage />} />
             <Route path="/" element={<AppLayout><JournalPage /></AppLayout>} />
             <Route path="/projects" element={<AppLayout><ProjectPage /></AppLayout>} />
             <Route path="/insights" element={<AppLayout><InsightsPage /></AppLayout>} />
@@ -38,7 +54,7 @@ function App() {
           </Routes>
         </SidebarProvider>
       </DataProvider>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
 

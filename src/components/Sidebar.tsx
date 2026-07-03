@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { BookOpen, FolderKanban, BarChart3, User, Cloud, HardDrive, LogOut, PanelLeftClose, PanelLeft } from "lucide-react";
+import { BookOpen, FolderKanban, BarChart3, User, HardDrive, FolderOpen, PanelLeftClose, PanelLeft, Download, Upload, FolderSync } from "lucide-react";
 import { useData } from "@/contexts/DataContext";
 import { useSidebar } from "@/contexts/SidebarContext";
 import { Button } from "@/components/ui/button";
@@ -12,8 +12,11 @@ const navItems = [
 ];
 
 export function Sidebar() {
-  const { isCloud, user, logout } = useData();
+  const { vaultPath, openVault, changeVault, exportBackup, importBackup } = useData();
   const { collapsed, setCollapsed } = useSidebar();
+
+  // Get short vault name for display
+  const vaultName = vaultPath ? vaultPath.split(/[/\\]/).pop() || "Vault" : "Local";
 
   return (
     <>
@@ -61,21 +64,66 @@ export function Sidebar() {
         <div className="p-4 border-t border-zinc-800/60 space-y-3">
           {!collapsed && (
             <>
-              <div className="rounded-lg bg-zinc-950/50 backdrop-blur-sm border border-zinc-800/60 p-3 flex items-center justify-center gap-2">
-                {isCloud ? (
-                  <><Cloud className="w-3.5 h-3.5 text-blue-400" /><span className="text-[11px] text-zinc-400">Synced with Supabase</span></>
-                ) : (
-                  <><HardDrive className="w-3.5 h-3.5 text-zinc-500" /><span className="text-[11px] text-zinc-500">Local storage</span></>
-                )}
-              </div>
-              {user && (
-                <div className="rounded-lg bg-zinc-950/50 backdrop-blur-sm border border-zinc-800/60 p-3">
-                  <p className="text-xs text-zinc-300 truncate mb-2">{user.email}</p>
-                  <Button variant="outline" size="sm" onClick={logout} className="w-full h-8 text-xs gap-1.5 border-zinc-700 text-zinc-300 hover:bg-zinc-900 hover:text-white">
-                    <LogOut className="w-3.5 h-3.5" /> Logout
+              <div className="rounded-lg bg-zinc-950/50 backdrop-blur-sm border border-zinc-800/60 p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <HardDrive className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="text-[11px] text-zinc-300 font-medium">Local Vault</span>
+                </div>
+                <p className="text-[10px] text-zinc-500 truncate mb-2" title={vaultPath}>
+                  {vaultName}
+                </p>
+                <div className="flex gap-1.5">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={openVault}
+                    className="flex-1 h-7 text-[10px] gap-1 border-zinc-700 text-zinc-400 hover:text-white"
+                    title="Open vault folder in file manager"
+                  >
+                    <FolderOpen className="w-3 h-3" />
+                    Open
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={changeVault}
+                    className="flex-1 h-7 text-[10px] gap-1 border-zinc-700 text-zinc-400 hover:text-white"
+                    title="Switch to a different vault directory"
+                  >
+                    <FolderSync className="w-3 h-3" />
+                    Switch
                   </Button>
                 </div>
-              )}
+              </div>
+
+              {/* Backup actions */}
+              <div className="flex gap-1.5">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={exportBackup}
+                  className="flex-1 h-6 text-[9px] gap-1 text-zinc-500 hover:text-zinc-300"
+                  title="Export vault backup as JSON"
+                >
+                  <Download className="w-2.5 h-2.5" />
+                  Export
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={importBackup}
+                  className="flex-1 h-6 text-[9px] gap-1 text-zinc-500 hover:text-zinc-300"
+                  title="Import vault from JSON backup"
+                >
+                  <Upload className="w-2.5 h-2.5" />
+                  Import
+                </Button>
+              </div>
+
+              <div className="flex items-center justify-center gap-1.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[10px] text-zinc-500">All data stored locally as .md files</span>
+              </div>
             </>
           )}
         </div>

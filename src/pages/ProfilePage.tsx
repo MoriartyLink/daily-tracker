@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { User, Save, CheckCircle, GripVertical, ChevronUp, ChevronDown, Plus, Trash2 } from "lucide-react";
+import { User, Save, CheckCircle, GripVertical, ChevronUp, ChevronDown, Plus, Trash2, FolderOpen, HardDrive, Download, Upload } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,8 +7,12 @@ import { Label } from "@/components/ui/label";
 import { useData } from "@/contexts/DataContext";
 import type { Fact } from "@/types";
 
+function isElectron(): boolean {
+  return typeof window !== "undefined" && !!window.electronAPI;
+}
+
 export function ProfilePage() {
-  const { profile, updateProfile } = useData();
+  const { profile, updateProfile, vaultPath, changeVault, openVault } = useData();
   const [saved, setSaved] = useState(false);
 
   const update = (updates: Partial<typeof profile>) => updateProfile({ ...profile, ...updates });
@@ -92,39 +96,77 @@ export function ProfilePage() {
         </CardContent>
       </Card>
 
+      {/* Vault Settings */}
+      <Card className="border-zinc-700/50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center"><HardDrive className="w-4 h-4 text-emerald-400" /></div>
+            <span className="text-sm text-zinc-400">Vault Settings</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label className="text-xs text-zinc-400">Vault Location</Label>
+            <div className="mt-1.5 flex items-center gap-2">
+              <div className="flex-1 bg-zinc-900 border border-zinc-700 rounded-md px-3 py-2 text-xs text-zinc-300 truncate font-mono">
+                {vaultPath || "Not set"}
+              </div>
+              {isElectron() && (
+                <Button variant="outline" size="sm" onClick={changeVault} className="gap-1.5 text-xs shrink-0">
+                  <FolderOpen className="w-3.5 h-3.5" />Change
+                </Button>
+              )}
+            </div>
+            <p className="text-[10px] text-zinc-500 mt-1.5">
+              All your data is stored as .md files in this folder. You can open it with any text editor, sync with Git, or back it up however you like.
+            </p>
+          </div>
+          {isElectron() && (
+            <Button variant="outline" size="sm" onClick={openVault} className="gap-1.5 text-xs">
+              <FolderOpen className="w-3.5 h-3.5" />Open Vault in File Manager
+            </Button>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Data Management */}
       <Card className="border-zinc-700/50">
         <CardHeader><CardTitle className="text-sm text-zinc-400">Data Management</CardTitle></CardHeader>
         <CardContent className="flex gap-3">
-          <Button variant="outline" size="sm" onClick={() => {
-            const data = { entries: JSON.parse(localStorage.getItem("daily-tracker-entries") || "{}"), profile: JSON.parse(localStorage.getItem("daily-tracker-profile") || "{}"), projects: JSON.parse(localStorage.getItem("daily-tracker-projects") || "[]") };
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-            const url = URL.createObjectURL(blob); const a = document.createElement("a");
-            a.href = url; a.download = `daily-tracker-backup-${new Date().toISOString().split("T")[0]}.json`; a.click(); URL.revokeObjectURL(url);
-          }}>Export Data</Button>
-          <Button variant="outline" size="sm" onClick={() => {
-            const input = document.createElement("input"); input.type = "file"; input.accept = ".json";
-            input.onchange = (e) => {
-              const file = (e.target as HTMLInputElement).files?.[0]; if (!file) return;
-              const reader = new FileReader();
-              reader.onload = (ev) => { try { const d = JSON.parse(ev.target?.result as string); if (d.entries) localStorage.setItem("daily-tracker-entries", JSON.stringify(d.entries)); if (d.profile) localStorage.setItem("daily-tracker-profile", JSON.stringify(d.profile)); if (d.projects) localStorage.setItem("daily-tracker-projects", JSON.stringify(d.projects)); window.location.reload(); } catch { alert("Invalid backup file"); } };
-              reader.readAsText(file);
-            }; input.click();
-          }}>Import Data</Button>
-        </CardContent>
-      </Card>
-
-      {/* Account Security */}
-      <Card className="border-zinc-700/50">
-        <CardHeader>
-          <CardTitle className="text-sm text-zinc-400">Account Security</CardTitle>
-        </CardHeader>
-        <CardContent className="flex gap-3">
-          <Button variant="outline" size="sm" onClick={() => {
-            alert("Password reset email has been sent. Check your inbox for instructions to reset your password.");
-          }}>
-            Forgot Password
-          </Button>
+          {isElectron() ? (
+            <>
+              <Button variant="outline" size="sm" onClick={async () => {
+                const success = await window.electronAPI!.exportBackup();
+                if (success) { /* saved via native dialog */ }
+              }} className="gap-1.5">
+                <Download className="w-3.5 h-3.5" />Export Backup (JSON)
+              </Button>
+              <Button variant="outline" size="sm" onClick={async () => {
+                const result = await window.electronAPI!.importBackup();
+                if (result) window.location.reload();
+              }} className="gap-1.5">
+                <Upload className="w-3.5 h-3.5" />Import Backup
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="outline" size="sm" onClick={() => {
+                const data = { entries: JSON.parse(localStorage.getItem("daily-tracker-entries") || "{}"), profile: JSON.parse(localStorage.getItem("daily-tracker-profile") || "{}"), projects: JSON.parse(localStorage.getItem("daily-tracker-projects") || "[]") };
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+                const url = URL.createObjectURL(blob); const a = document.createElement("a");
+                a.href = url; a.download = `daily-tracker-backup-${new Date().toISOString().split("T")[0]}.json`; a.click(); URL.revokeObjectURL(url);
+              }}>Export Data</Button>
+              <Button variant="outline" size="sm" onClick={() => {
+                const input = document.createElement("input"); input.type = "file"; input.accept = ".json";
+                input.onchange = (e) => {
+                  const file = (e.target as HTMLInputElement).files?.[0]; if (!file) return;
+                  const reader = new FileReader();
+                  reader.onload = (ev) => { try { const d = JSON.parse(ev.target?.result as string); if (d.entries) localStorage.setItem("daily-tracker-entries", JSON.stringify(d.entries)); if (d.profile) localStorage.setItem("daily-tracker-profile", JSON.stringify(d.profile)); if (d.projects) localStorage.setItem("daily-tracker-projects", JSON.stringify(d.projects)); window.location.reload(); } catch { alert("Invalid backup file"); } };
+                  reader.readAsText(file);
+                }; input.click();
+              }}>Import Data</Button>
+            </>
+          )}
         </CardContent>
       </Card>
     </div>

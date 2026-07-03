@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
-import { supabase, isSupabaseConfigured, signInWithPassword, signUp as supabaseSignUp, signOut, onAuthStateChange } from "@/lib/supabase";
-import type { DailyEntry, UserProfile, Project, Fact } from "@/types";
+import type { DailyEntry, UserProfile, Project } from "@/types";
+import "@/types/electron";
 
 // ── Types ──
 interface DataContextType {
@@ -15,15 +15,16 @@ interface DataContextType {
   setProjects: (fn: Project[] | ((prev: Project[]) => Project[])) => void;
   // Status
   loading: boolean;
-  isCloud: boolean;
-  // Auth
-  user: { id: string; email: string } | null;
-  login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
+  // Vault
+  vaultPath: string;
+  changeVault: () => Promise<void>;
+  openVault: () => void;
+  // Backup
+  exportBackup: () => Promise<boolean>;
+  importBackup: () => Promise<boolean>;
 }
 
-const defaultProfile: UserProfile = { id: "", name: "", email: "", avatar: "", goals: [], facts: [] };
+const defaultProfile: UserProfile = { name: "", email: "", avatar: "", goals: [], facts: [] };
 
 const DataContext = createContext<DataContextType | null>(null);
 
@@ -33,7 +34,12 @@ export function useData(): DataContextType {
   return ctx;
 }
 
-// ── localStorage helpers ──
+// ── Check if running in Electron ──
+function isElectron(): boolean {
+  return typeof window !== "undefined" && !!window.electronAPI;
+}
+
+// ── localStorage helpers (fallback for browser dev) ──
 function lsGet<T>(key: string, fallback: T): T {
   try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
   catch { return fallback; }
@@ -46,166 +52,60 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<UserProfile>(defaultProfile);
   const [projects, setProjectsState] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<{ id: string; email: string } | null>(null);
+  const [vaultPath, setVaultPath] = useState("");
 
-  // Initialize auth state
-  useEffect(() => {
-    if (!isSupabaseConfigured) return;
-
-    const initAuth = async () => {
-      const { data } = await supabase!.auth.getUser();
-      if (data.user) setUser({ id: data.user.id, email: data.user.email || "" });
-      setLoading(false);
-    };
-    initAuth();
-
-    const unsubscribe = onAuthStateChange((session) => {
-      if (session?.user) {
-        setUser({ id: session.user.id, email: session.user.email || "" });
-      } else {
-        setUser(null);
+  // Load all data (used on mount and on vault:changed events)
+  const loadAllData = useCallback(async () => {
+    if (isElectron()) {
+      try {
+        const api = window.electronAPI!;
+        const [loadedEntries, loadedProfile, loadedProjects, path] = await Promise.all([
+          api.loadAllEntries(),
+          api.loadProfile(),
+          api.loadAllProjects(),
+          api.getVaultPath(),
+        ]);
+        setEntries(loadedEntries || {});
+        setProfile(loadedProfile || defaultProfile);
+        setProjectsState(loadedProjects || []);
+        setVaultPath(path || "");
+      } catch (err) {
+        console.error("Failed to load data from vault:", err);
       }
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  // Load data after auth state is known
-  useEffect(() => {
-    if (loading) return;
-
-    if (isSupabaseConfigured && supabase && user) {
-      Promise.all([
-        supabase.from("daily_entries").select("*").eq("user_id", user.id),
-        supabase.from("user_profile").select("*").eq("user_id", user.id).maybeSingle(),
-        supabase.from("projects").select("*").eq("user_id", user.id).order("created_at"),
-      ]).then(([eRes, pRes, prRes]) => {
-        if (eRes.data) {
-          const map: Record<string, DailyEntry> = {};
-          for (const row of eRes.data) {
-            map[row.date] = {
-              id: row.id,
-              date: row.date,
-              tasks: row.tasks || [],
-              mentalStatus: row.mental_status || { morning: 2, afternoon: 2, night: 2 },
-              physicalStatus: row.physical_status || "good",
-              physicalNote: row.physical_note || "",
-              mentalNote: row.mental_note || "",
-              journal: row.journal || "",
-              bestThing: row.best_thing || "",
-              proudThings: row.proud_things || "",
-              lessonLearned: row.lesson_learned || "",
-              lessonChange: row.lesson_change || "",
-              excitedAbout: row.excited_about || "",
-            };
-          }
-          setEntries(map);
-        }
-        if (pRes.data) {
-          setProfile({ 
-            id: pRes.data.id, 
-            name: pRes.data.name || "", 
-            email: ((pRes.data as Record<string, unknown>).email as string) || "", 
-            avatar: pRes.data.avatar || "", 
-            goals: pRes.data.goals || [], 
-            facts: ((pRes.data as Record<string, unknown>).facts as Fact[]) || [] 
-          });
-        } else if (user) {
-          // Create a default profile row for this user
-          supabase!.from("user_profile").insert({ user_id: user.id, name: "", email: user.email }).then(
-            (res) => {
-              const row = res.data as { id: string }[] | null;
-              if (row && row[0]) {
-                setProfile({ 
-                  id: row[0].id, 
-                  name: "", 
-                  email: user.email, 
-                  avatar: "", 
-                  goals: [], 
-                  facts: [] 
-                });
-              }
-            },
-            (error: unknown) => console.error("❌ Failed to create profile:", error)
-          );
-        }
-        if (prRes.data) {
-          setProjectsState(prRes.data.map((r: Record<string, unknown>) => ({
-            id: r.id, title: r.title, description: r.description, color: r.color,
-            milestones: r.milestones, cards: r.cards, createdAt: r.created_at,
-            archived: r.archived,
-          })) as Project[]);
-        }
-      }).catch((error) => {
-        console.error("Failed to load data from Supabase:", error);
-      });
     } else {
+      // Fallback to localStorage for browser dev
       setEntries(lsGet("daily-tracker-entries", {}));
       setProfile(lsGet("daily-tracker-profile", defaultProfile));
       setProjectsState(lsGet("daily-tracker-projects", []));
+      setVaultPath("localStorage (browser mode)");
     }
-  }, [loading]);
+    setLoading(false);
+  }, []);
+
+  // Load data on mount
+  useEffect(() => {
+    loadAllData();
+  }, [loadAllData]);
+
+  // Listen for vault changes (file watcher) — reload all data
+  useEffect(() => {
+    if (!isElectron()) return;
+    const cleanup = window.electronAPI!.onVaultChanged(() => {
+      console.log("Vault changed externally, reloading...");
+      loadAllData();
+    });
+    return cleanup;
+  }, [loadAllData]);
+
   // ── Entry upsert ──
   const updateEntry = useCallback((date: string, entry: DailyEntry) => {
-    console.log("🔵 updateEntry called for date:", date, "tasks count:", entry.tasks.length, "isSupabaseConfigured:", isSupabaseConfigured);
-    
     setEntries((prev) => {
       const next = { ...prev, [date]: entry };
-      if (isSupabaseConfigured && supabase && user) {
-        // Sanitize payload to ensure valid JSON
-        const sanitizedTasks = entry.tasks.map(task => ({
-          id: String(task.id || ""),
-          task: String(task.task || ""),
-          outcome: String(task.outcome || ""),
-          system: String(task.system || ""),
-          mission: String(task.mission || ""),
-          completed: Boolean(task.completed),
-        }));
-
-        const payload = {
-          id: String(entry.id || crypto.randomUUID()),
-          user_id: user.id,
-          date: String(date),
-          tasks: sanitizedTasks,
-          mental_status: {
-            morning: Number(entry.mentalStatus?.morning) || 2,
-            afternoon: Number(entry.mentalStatus?.afternoon) || 2,
-            night: Number(entry.mentalStatus?.night) || 2,
-          },
-          physical_status: String(entry.physicalStatus || "good"),
-          physical_note: String(entry.physicalNote || ""),
-          mental_note: String(entry.mentalNote || ""),
-          journal: String(entry.journal || ""),
-          best_thing: String(entry.bestThing || ""),
-          proud_things: String(entry.proudThings || ""),
-          lesson_learned: String(entry.lessonLearned || ""),
-          lesson_change: String(entry.lessonChange || ""),
-          excited_about: String(entry.excitedAbout || ""),
-          updated_at: new Date().toISOString(),
-        };
-
-        console.log("🔵 Upserting to Supabase:", payload);
-        console.log("🔵 Tasks being sent:", JSON.stringify(sanitizedTasks));
-        
-        supabase.from("daily_entries").upsert(payload, { onConflict: "user_id,date" }).then(
-          (result) => {
-            console.log("✅ Supabase upsert success:", result);
-          },
-          (error: unknown) => {
-            console.error("❌ Failed to save daily entry:", error);
-            console.error("❌ Full error object:", JSON.stringify(error, null, 2));
-            
-            if (error && typeof error === 'object') {
-              const err = error as Record<string, unknown>;
-              if ('message' in err) console.error("❌ Error message:", err.message);
-              if ('details' in err) console.error("❌ Error details:", err.details);
-              if ('hint' in err) console.error("❌ Error hint:", err.hint);
-              if ('code' in err) console.error("❌ Error code:", err.code);
-            }
-          }
+      if (isElectron()) {
+        window.electronAPI!.saveEntry(date, entry).catch((err: unknown) =>
+          console.error("Failed to save entry:", err)
         );
       } else {
-        console.log("🔵 Using localStorage instead of Supabase — user:", !!user, "supabase:", !!supabase, "configured:", isSupabaseConfigured);
         lsSet("daily-tracker-entries", next);
       }
       return next;
@@ -215,76 +115,86 @@ export function DataProvider({ children }: { children: ReactNode }) {
   // ── Profile update ──
   const updateProfileFn = useCallback((p: UserProfile) => {
     setProfile(p);
-    if (isSupabaseConfigured && supabase && user) {
-      if (!p.id) {
-        // Insert a new profile row if no id exists yet
-        supabase.from("user_profile").insert({
-          user_id: user.id, name: p.name, email: p.email, avatar: p.avatar, goals: p.goals, facts: p.facts,
-        }).select().then(
-          (result) => {
-            if (result.data?.[0]?.id) {
-              setProfile((prev) => ({ ...prev, id: result.data[0].id }));
-            }
-            console.log("✅ Profile saved to Supabase:", result);
-          },
-          (error: unknown) => { console.error("❌ Failed to insert profile:", error); }
-        );
-      } else {
-        supabase.from("user_profile").update({
-          name: p.name, email: p.email, avatar: p.avatar, goals: p.goals, facts: p.facts, updated_at: new Date().toISOString(),
-        }).eq("user_id", user.id).then(
-          () => { console.log("✅ Profile updated in Supabase"); },
-          (error: unknown) => { console.error("❌ Failed to save profile:", error); }
-        );
-      }
-    } else { lsSet("daily-tracker-profile", p); }
+    if (isElectron()) {
+      window.electronAPI!.saveProfile(p).catch((err: unknown) =>
+        console.error("Failed to save profile:", err)
+      );
+    } else {
+      lsSet("daily-tracker-profile", p);
+    }
   }, []);
 
   // ── Projects update ──
   const setProjects = useCallback((fn: Project[] | ((prev: Project[]) => Project[])) => {
     setProjectsState((prev) => {
       const next = typeof fn === "function" ? fn(prev) : fn;
-      if (isSupabaseConfigured && supabase && user) {
-        const rows = next.map((p) => ({
-          id: p.id, title: p.title, description: p.description, color: p.color,
-          milestones: p.milestones, cards: p.cards, archived: p.archived,
-          created_at: p.createdAt, updated_at: new Date().toISOString(),
-        }));
+
+      if (isElectron()) {
+        const api = window.electronAPI!;
+        // Delete removed projects
         const nextIds = new Set(next.map((p) => p.id));
         for (const p of prev) {
-          if (!nextIds.has(p.id)) supabase!.from("projects").delete().eq("user_id", user.id).eq("id", p.id).then(
-            () => {},
-            (error: unknown) => { console.error("Failed to delete project:", error); }
+          if (!nextIds.has(p.id)) {
+            api.deleteProject(p.id).catch((err: unknown) =>
+              console.error("Failed to delete project:", err)
+            );
+          }
+        }
+        // Save all current projects
+        for (const project of next) {
+          api.saveProject(project).catch((err: unknown) =>
+            console.error("Failed to save project:", err)
           );
         }
-        for (const row of rows) {
-          supabase!.from("projects").upsert({ ...row, user_id: user.id }, { onConflict: "user_id,id" }).then(
-            () => {},
-            (error: unknown) => { console.error("Failed to save project:", error); }
-          );
-        }
-      } else { lsSet("daily-tracker-projects", next); }
+      } else {
+        lsSet("daily-tracker-projects", next);
+      }
+
       return next;
     });
   }, []);
 
-  // ── Auth ──
-  const login = useCallback(async (email: string, password: string) => {
-    await signInWithPassword(email, password);
-    setProfile((prev) => ({ ...prev, email }));
+  // ── Vault management ──
+  const changeVault = useCallback(async () => {
+    if (!isElectron()) return;
+    const newPath = await window.electronAPI!.changeVaultPath();
+    if (newPath) {
+      setVaultPath(newPath);
+      setLoading(true);
+      await loadAllData();
+    }
+  }, [loadAllData]);
+
+  const openVault = useCallback(() => {
+    if (isElectron()) {
+      window.electronAPI!.openVaultInExplorer();
+    }
   }, []);
 
-  const signup = useCallback(async (email: string, password: string) => {
-    await supabaseSignUp(email, password);
-    setProfile((prev) => ({ ...prev, email }));
+  // ── Backup ──
+  const exportBackup = useCallback(async () => {
+    if (!isElectron()) return false;
+    return await window.electronAPI!.exportBackup();
   }, []);
 
-  const logout = useCallback(async () => {
-    await signOut();
-  }, []);
+  const importBackup = useCallback(async () => {
+    if (!isElectron()) return false;
+    const result = await window.electronAPI!.importBackup();
+    if (result) {
+      await loadAllData();
+    }
+    return !!result;
+  }, [loadAllData]);
 
   return (
-    <DataContext.Provider value={{ entries, updateEntry, profile, updateProfile: updateProfileFn, projects, setProjects, loading, isCloud: isSupabaseConfigured, user, login, signup, logout }}>
+    <DataContext.Provider value={{
+      entries, updateEntry,
+      profile, updateProfile: updateProfileFn,
+      projects, setProjects,
+      loading,
+      vaultPath, changeVault, openVault,
+      exportBackup, importBackup,
+    }}>
       {children}
     </DataContext.Provider>
   );

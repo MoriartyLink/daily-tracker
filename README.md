@@ -1,24 +1,45 @@
 # Daily Tracker
 
-Track your daily journal, tasks, mental/physical status, projects, and insights — all in one place.
+A local-first desktop app for daily journaling, task tracking, project management, and personal insights — all stored as plain `.md` files in a local vault.
+
+> **Your data is yours.** Every entry is a markdown file on your disk. Open them in Obsidian, VS Code, or any text editor.
 
 ## Features
 
-- **Journal** — Daily entries with tasks, mood tracking, and reflections
-- **Insights** — Weekly/monthly summaries and charts
-- **Projects** — Kanban boards with milestones and cards
-- **Profile** — Personal goals and fun facts
-- **Auth** — Sign up / log in with Supabase Auth
-- **Multi-user** — Each user's data is isolated by `user_id`
-- **Offline** — LocalStorage fallback when Supabase is unavailable
+- **Journal** — Daily entries with tasks, mood tracking (mental/physical), and reflections
+- **Projects** — Kanban boards with milestones, cards, priorities, and tags
+- **Insights** — Weekly/monthly charts for mood trends, task completion, and productivity
+- **Profile** — Personal goals with progress tracking and fun facts
+- **Local Vault** — All data stored as `.md` files with YAML frontmatter (Obsidian-compatible)
+- **Vault Picker** — Choose any directory as your vault, switch between vaults
+- **Backup** — Export/import full vault as JSON
+- **Offline** — No internet required, everything runs locally
 
 ## Tech Stack
 
+- **Desktop:** Electron
 - **Frontend:** React + TypeScript + Vite
-- **UI:** shadcn/ui + Tailwind CSS
-- **Backend:** Supabase (Auth + Postgres)
+- **UI:** shadcn/ui + Tailwind CSS v4
 - **Charts:** Recharts
+- **Storage:** Local filesystem (`.md` files with YAML frontmatter)
+- **Build:** electron-builder (AppImage, .deb, .dmg, NSIS)
 - **Testing:** Vitest + React Testing Library
+
+## Vault Structure
+
+```
+~/DailyTracker/                   ← Default vault (configurable)
+├── journal/
+│   ├── 2026-07-01.md             ← Daily entries
+│   ├── 2026-07-02.md
+│   └── 2026-07-03.md
+├── projects/
+│   ├── project-abc123.md         ← Kanban project data
+│   └── project-def456.md
+└── profile.md                    ← User profile, goals, facts
+```
+
+Each `.md` file uses YAML frontmatter for structured data and a markdown body for freeform content. Files are human-readable and can be edited in any markdown editor.
 
 ## Quick Start
 
@@ -30,88 +51,103 @@ cd daily-tracker
 npm install
 ```
 
-### 2. Set up environment variables
-
-Create a `.env` file in the project root:
-
-```env
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
-VITE_GROQ_API_KEY=your-groq-api-key  # optional, for AI insights
-```
-
-### 3. Set up Supabase
-
-1. Create a new project at [supabase.com](https://supabase.com)
-2. Go to **SQL Editor** and run the schema:
-
-```sql
--- Run supabase-schema.sql from this repo
-```
-
-3. Enable **Email** auth in **Authentication → Providers**
-4. In **Authentication → URL Configuration**:
-   - **Site URL:** `http://localhost:5173`
-   - **Redirect URLs:** Add `http://localhost:5173/**`
-
-### 4. Run locally
+### 2. Run in development mode
 
 ```bash
-npm run dev
+# Run Electron + Vite dev server together
+npm run dev:electron
 ```
 
-Open `http://localhost:5173` and sign up / log in.
+This starts Vite on `http://localhost:5173` and opens the Electron window pointed at it.
 
-### 5. Run tests
+> **Browser-only dev:** Run `npm run dev` to work in the browser with localStorage fallback (no Electron features).
+
+### 3. Run tests
 
 ```bash
 npm test
 ```
 
-### 6. Build for production
+### 4. Build for distribution
 
 ```bash
-npm run build
+npm run build:electron
 ```
 
-## Deploying to Vercel
+Output goes to `release/` — produces platform-specific packages:
+- **Linux:** AppImage + `.deb`
+- **macOS:** `.dmg`
+- **Windows:** NSIS installer
 
-1. Push this repo to GitHub
-2. Import the repo in [Vercel](https://vercel.com)
-3. Add these **Environment Variables** in Vercel project settings:
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_ANON_KEY`
-   - `VITE_GROQ_API_KEY` (optional)
-4. Deploy
-
-After first deploy, update Supabase **Redirect URLs** to include your Vercel domain:
-```
-https://your-project.vercel.app/**
-```
-
-## Database Migrations
-
-If you already have data from an earlier version (before multi-user support), run the migration in Supabase SQL Editor:
-
-```bash
-# Run supabase-migration-add-user-id.sql from this repo
-```
-
-This adds `user_id` columns to all tables and enables per-user data isolation with RLS policies.
-
-## Project Structure
+## Architecture
 
 ```
+electron/
+  main.cjs             # Electron main process — vault I/O, IPC handlers, window management
+  preload.cjs          # Context bridge — exposes electronAPI to renderer
+
 src/
-  components/      # Reusable UI components (shadcn/ui)
-  contexts/        # React contexts (DataContext, SidebarContext)
-  hooks/           # Custom hooks
-  lib/             # Supabase client
-  pages/           # Route pages (Journal, Insights, Projects, Profile, Auth)
-  types/           # TypeScript interfaces
-tests/             # Vitest tests (outside src/ for build compatibility)
-supabase-schema.sql          # Initial database schema
-supabase-migration-add-user-id.sql  # Migration for existing databases
+  components/          # Reusable UI components (shadcn/ui)
+  contexts/            # React contexts
+    DataContext.tsx     # Central data layer — Electron IPC ↔ localStorage fallback
+    SidebarContext.tsx  # Sidebar collapse state
+  hooks/               # Custom hooks
+  lib/                 # Utilities (cn helper)
+  pages/               # Route pages (Journal, Insights, Projects, Profile)
+  types/               # TypeScript interfaces + ElectronAPI type
+
+data/                  # Local development vault (gitignored)
+```
+
+### Data Flow
+
+```
+[React UI] ←→ [DataContext] ←→ [electronAPI (preload)] ←→ [IPC] ←→ [main.cjs] ←→ [Filesystem .md]
+```
+
+- **In Electron:** Data flows through IPC to the main process which reads/writes `.md` files
+- **In browser:** Falls back to `localStorage` for development convenience
+
+### IPC Channels
+
+| Channel | Direction | Description |
+|---------|-----------|-------------|
+| `vault:getPath` | main → renderer | Get current vault path |
+| `vault:changePath` | renderer → main | Open folder picker, switch vault |
+| `vault:openInExplorer` | renderer → main | Open vault folder in file manager |
+| `entries:loadAll` | main → renderer | Load all journal entries |
+| `entries:save` | renderer → main | Save a journal entry |
+| `profile:load` | main → renderer | Load user profile |
+| `profile:save` | renderer → main | Save user profile |
+| `projects:loadAll` | main → renderer | Load all projects |
+| `projects:save` | renderer → main | Save a project |
+| `projects:delete` | renderer → main | Delete a project file |
+| `data:exportBackup` | renderer → main | Export full vault as JSON |
+| `data:importBackup` | renderer → main | Import JSON backup into vault |
+
+## Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+Shift+F` | Search vault (planned) |
+| `Ctrl+,` | Open settings/profile (planned) |
+
+## Development
+
+### Prerequisites
+
+- Node.js 20+
+- npm 10+
+
+### Dev commands
+
+```bash
+npm run dev           # Vite only (browser mode)
+npm run dev:electron  # Vite + Electron (full desktop mode)
+npm run build         # Build frontend
+npm run build:electron # Build frontend + package Electron app
+npm run test          # Run tests
+npm run lint          # Lint with oxlint
 ```
 
 ## License
