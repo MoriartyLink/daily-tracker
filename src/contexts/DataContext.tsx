@@ -74,11 +74,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (loading) return;
 
-    if (isSupabaseConfigured && supabase) {
+    if (isSupabaseConfigured && supabase && user) {
       Promise.all([
-        supabase.from("daily_entries").select("*"),
-        supabase.from("user_profile").select("*").limit(1).single(),
-        supabase.from("projects").select("*").order("created_at"),
+        supabase.from("daily_entries").select("*").eq("user_id", user.id),
+        supabase.from("user_profile").select("*").eq("user_id", user.id).maybeSingle(),
+        supabase.from("projects").select("*").eq("user_id", user.id).order("created_at"),
       ]).then(([eRes, pRes, prRes]) => {
         if (eRes.data) {
           const map: Record<string, DailyEntry> = {};
@@ -110,6 +110,24 @@ export function DataProvider({ children }: { children: ReactNode }) {
             goals: pRes.data.goals || [], 
             facts: ((pRes.data as Record<string, unknown>).facts as Fact[]) || [] 
           });
+        } else if (user) {
+          // Create a default profile row for this user
+          supabase!.from("user_profile").insert({ user_id: user.id, name: "", email: user.email }).then(
+            (res) => {
+              const row = res.data as { id: string }[] | null;
+              if (row && row[0]) {
+                setProfile({ 
+                  id: row[0].id, 
+                  name: "", 
+                  email: user.email, 
+                  avatar: "", 
+                  goals: [], 
+                  facts: [] 
+                });
+              }
+            },
+            (error: unknown) => console.error("❌ Failed to create profile:", error)
+          );
         }
         if (prRes.data) {
           setProjectsState(prRes.data.map((r: Record<string, unknown>) => ({
@@ -133,7 +151,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     
     setEntries((prev) => {
       const next = { ...prev, [date]: entry };
-      if (isSupabaseConfigured && supabase) {
+      if (isSupabaseConfigured && supabase && user) {
         // Sanitize payload to ensure valid JSON
         const sanitizedTasks = entry.tasks.map(task => ({
           id: String(task.id || ""),
@@ -146,6 +164,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
         const payload = {
           id: String(entry.id || crypto.randomUUID()),
+          user_id: user.id,
           date: String(date),
           tasks: sanitizedTasks,
           mental_status: {
@@ -168,7 +187,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         console.log("🔵 Upserting to Supabase:", payload);
         console.log("🔵 Tasks being sent:", JSON.stringify(sanitizedTasks));
         
-        supabase.from("daily_entries").upsert(payload, { onConflict: "date" }).then(
+        supabase.from("daily_entries").upsert(payload, { onConflict: "user_id,date" }).then(
           (result) => {
             console.log("✅ Supabase upsert success:", result);
           },
@@ -196,11 +215,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
   // ── Profile update ──
   const updateProfileFn = useCallback((p: UserProfile) => {
     setProfile(p);
-    if (isSupabaseConfigured && supabase) {
+    if (isSupabaseConfigured && supabase && user) {
       if (!p.id) {
         // Insert a new profile row if no id exists yet
         supabase.from("user_profile").insert({
-          name: p.name, email: p.email, avatar: p.avatar, goals: p.goals, facts: p.facts,
+          user_id: user.id, name: p.name, email: p.email, avatar: p.avatar, goals: p.goals, facts: p.facts,
         }).select().then(
           (result) => {
             if (result.data?.[0]?.id) {
@@ -213,7 +232,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       } else {
         supabase.from("user_profile").update({
           name: p.name, email: p.email, avatar: p.avatar, goals: p.goals, facts: p.facts, updated_at: new Date().toISOString(),
-        }).eq("id", p.id).then(
+        }).eq("user_id", user.id).then(
           () => { console.log("✅ Profile updated in Supabase"); },
           (error: unknown) => { console.error("❌ Failed to save profile:", error); }
         );
@@ -225,7 +244,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const setProjects = useCallback((fn: Project[] | ((prev: Project[]) => Project[])) => {
     setProjectsState((prev) => {
       const next = typeof fn === "function" ? fn(prev) : fn;
-      if (isSupabaseConfigured && supabase) {
+      if (isSupabaseConfigured && supabase && user) {
         const rows = next.map((p) => ({
           id: p.id, title: p.title, description: p.description, color: p.color,
           milestones: p.milestones, cards: p.cards, archived: p.archived,
@@ -233,13 +252,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }));
         const nextIds = new Set(next.map((p) => p.id));
         for (const p of prev) {
-          if (!nextIds.has(p.id)) supabase!.from("projects").delete().eq("id", p.id).then(
+          if (!nextIds.has(p.id)) supabase!.from("projects").delete().eq("user_id", user.id).eq("id", p.id).then(
             () => {},
             (error: unknown) => { console.error("Failed to delete project:", error); }
           );
         }
         for (const row of rows) {
-          supabase!.from("projects").upsert(row, { onConflict: "id" }).then(
+          supabase!.from("projects").upsert({ ...row, user_id: user.id }, { onConflict: "user_id,id" }).then(
             () => {},
             (error: unknown) => { console.error("Failed to save project:", error); }
           );
