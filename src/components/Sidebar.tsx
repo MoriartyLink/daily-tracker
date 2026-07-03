@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { BookOpen, FolderKanban, BarChart3, User, HardDrive, FolderOpen, PanelLeftClose, PanelLeft, Download, Upload, FolderSync } from "lucide-react";
+import { BookOpen, FolderKanban, BarChart3, User, Search, HardDrive, FolderOpen, PanelLeftClose, PanelLeft, Download, Upload, FolderSync } from "lucide-react";
 import { useData } from "@/contexts/DataContext";
 import { useSidebar } from "@/contexts/SidebarContext";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ const navItems = [
   { to: "/", icon: BookOpen, label: "Journal" },
   { to: "/projects", icon: FolderKanban, label: "Projects" },
   { to: "/insights", icon: BarChart3, label: "Insights" },
+  { to: "/search", icon: Search, label: "Search" },
   { to: "/profile", icon: User, label: "Profile" },
 ];
 
