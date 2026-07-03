@@ -151,17 +151,19 @@ export function InsightsPage() {
 
     for (const dateStr of dates) {
       const entry = entries[dateStr];
-      const mentalAvg = entry ? (entry.mentalStatus.morning + entry.mentalStatus.afternoon + entry.mentalStatus.night) / 3 : 0;
+      const mentalStatus = entry?.mentalStatus;
+      const mentalAvg = mentalStatus ? (mentalStatus.morning + mentalStatus.afternoon + mentalStatus.night) / 3 : 0;
       const physVal = entry?.physicalStatus === "good" ? 3 : entry?.physicalStatus === "sick" ? 2 : entry?.physicalStatus === "critical" ? 1 : 0;
-      const completed = entry ? entry.tasks.filter((t) => t.completed).length : 0;
+      const tasks = entry?.tasks || [];
+      const completed = tasks.filter((t) => t.completed).length;
       const isFuture = dateStr > today;
-      const hasData = entry && (entry.tasks.length > 0 || entry.mentalNote.trim() !== "" || entry.physicalNote.trim() !== "" || entry.journal.trim() !== "" || entry.mentalStatus.morning !== 2 || entry.mentalStatus.afternoon !== 2 || entry.mentalStatus.night !== 2 || entry.physicalStatus !== "good");
+      const hasData = entry && (tasks.length > 0 || (entry.mentalNote || "").trim() !== "" || (entry.physicalNote || "").trim() !== "" || (entry.journal || "").trim() !== "" || (mentalStatus?.morning ?? 2) !== 2 || (mentalStatus?.afternoon ?? 2) !== 2 || (mentalStatus?.night ?? 2) !== 2 || (entry?.physicalStatus || "good") !== "good");
       
       chart.push({ 
         date: dateStr, 
         label: getShortDate(dateStr), 
         tasksCompleted: completed, 
-        totalTasks: entry?.tasks.length || 0, 
+        totalTasks: tasks.length, 
         mentalAvg: Math.round(mentalAvg * 10) / 10, 
         physical: physVal,
         isFuture,
@@ -169,8 +171,8 @@ export function InsightsPage() {
       });
 
       if (entry) {
-        for (const t of entry.tasks) {
-          if (t.outcome.trim() || t.task.trim()) {
+        for (const t of tasks) {
+          if ((t.outcome || "").trim() || (t.task || "").trim()) {
             outs.push({ task: t.task, outcome: t.outcome, system: t.system, mission: t.mission, completed: t.completed, date: dateStr });
           }
         }

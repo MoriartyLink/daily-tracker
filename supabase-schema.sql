@@ -9,6 +9,12 @@ create table if not exists daily_entries (
   mental_status jsonb not null default '{"morning":4,"afternoon":4,"night":4}',
   physical_status text not null default 'good',
   physical_note text not null default '',
+  mental_note text not null default '',
+  best_thing text not null default '',
+  proud_things text not null default '',
+  lesson_learned text not null default '',
+  lesson_change text not null default '',
+  excited_about text not null default '',
   journal text not null default '',
   created_at timestamptz default now(),
   updated_at timestamptz default now()

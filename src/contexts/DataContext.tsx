@@ -84,12 +84,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
           const map: Record<string, DailyEntry> = {};
           for (const row of eRes.data) {
             map[row.date] = {
-              id: row.id, date: row.date, tasks: row.tasks,
-              mentalStatus: row.mental_status, physicalStatus: row.physical_status,
-              physicalNote: row.physical_note, mentalNote: row.mental_note, journal: row.journal,
-              bestThing: row.best_thing, proudThings: row.proud_things,
-              lessonLearned: row.lesson_learned, lessonChange: row.lesson_change,
-              excitedAbout: row.excited_about,
+              id: row.id,
+              date: row.date,
+              tasks: row.tasks || [],
+              mentalStatus: row.mental_status || { morning: 2, afternoon: 2, night: 2 },
+              physicalStatus: row.physical_status || "good",
+              physicalNote: row.physical_note || "",
+              mentalNote: row.mental_note || "",
+              journal: row.journal || "",
+              bestThing: row.best_thing || "",
+              proudThings: row.proud_things || "",
+              lessonLearned: row.lesson_learned || "",
+              lessonChange: row.lesson_change || "",
+              excitedAbout: row.excited_about || "",
             };
           }
           setEntries(map);
@@ -104,6 +111,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
             archived: r.archived,
           })) as Project[]);
         }
+      }).catch((error) => {
+        console.error("Failed to load data from Supabase:", error);
       });
     } else {
       setEntries(lsGet("daily-tracker-entries", {}));
@@ -113,19 +122,66 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [loading]);
   // ── Entry upsert ──
   const updateEntry = useCallback((date: string, entry: DailyEntry) => {
+    console.log("🔵 updateEntry called for date:", date, "tasks count:", entry.tasks.length, "isSupabaseConfigured:", isSupabaseConfigured);
+    
     setEntries((prev) => {
       const next = { ...prev, [date]: entry };
       if (isSupabaseConfigured && supabase) {
-        supabase.from("daily_entries").upsert({
-          id: entry.id, date, tasks: entry.tasks,
-          mental_status: entry.mentalStatus, physical_status: entry.physicalStatus,
-          physical_note: entry.physicalNote, mental_note: entry.mentalNote, journal: entry.journal,
-          best_thing: entry.bestThing, proud_things: entry.proudThings,
-          lesson_learned: entry.lessonLearned, lesson_change: entry.lessonChange,
-          excited_about: entry.excitedAbout,
+        // Sanitize payload to ensure valid JSON
+        const sanitizedTasks = entry.tasks.map(task => ({
+          id: String(task.id || ""),
+          task: String(task.task || ""),
+          outcome: String(task.outcome || ""),
+          system: String(task.system || ""),
+          mission: String(task.mission || ""),
+          completed: Boolean(task.completed),
+        }));
+
+        const payload = {
+          id: String(entry.id || crypto.randomUUID()),
+          date: String(date),
+          tasks: sanitizedTasks,
+          mental_status: {
+            morning: Number(entry.mentalStatus?.morning) || 2,
+            afternoon: Number(entry.mentalStatus?.afternoon) || 2,
+            night: Number(entry.mentalStatus?.night) || 2,
+          },
+          physical_status: String(entry.physicalStatus || "good"),
+          physical_note: String(entry.physicalNote || ""),
+          mental_note: String(entry.mentalNote || ""),
+          journal: String(entry.journal || ""),
+          best_thing: String(entry.bestThing || ""),
+          proud_things: String(entry.proudThings || ""),
+          lesson_learned: String(entry.lessonLearned || ""),
+          lesson_change: String(entry.lessonChange || ""),
+          excited_about: String(entry.excitedAbout || ""),
           updated_at: new Date().toISOString(),
-        }, { onConflict: "date" }).then(() => {});
-      } else { lsSet("daily-tracker-entries", next); }
+        };
+
+        console.log("🔵 Upserting to Supabase:", payload);
+        console.log("🔵 Tasks being sent:", JSON.stringify(sanitizedTasks));
+        
+        supabase.from("daily_entries").upsert(payload, { onConflict: "date" }).then(
+          (result) => {
+            console.log("✅ Supabase upsert success:", result);
+          },
+          (error: unknown) => {
+            console.error("❌ Failed to save daily entry:", error);
+            console.error("❌ Full error object:", JSON.stringify(error, null, 2));
+            
+            if (error && typeof error === 'object') {
+              const err = error as Record<string, unknown>;
+              if ('message' in err) console.error("❌ Error message:", err.message);
+              if ('details' in err) console.error("❌ Error details:", err.details);
+              if ('hint' in err) console.error("❌ Error hint:", err.hint);
+              if ('code' in err) console.error("❌ Error code:", err.code);
+            }
+          }
+        );
+      } else {
+        console.log("🔵 Using localStorage instead of Supabase");
+        lsSet("daily-tracker-entries", next);
+      }
       return next;
     });
   }, []);
@@ -136,7 +192,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (isSupabaseConfigured && supabase) {
       supabase.from("user_profile").update({
         id: p.id, name: p.name, email: p.email, avatar: p.avatar, goals: p.goals, facts: p.facts, updated_at: new Date().toISOString(),
-      }).then(() => {});
+      }).then(
+        () => {},
+        (error: unknown) => { console.error("Failed to save profile:", error); }
+      );
     } else { lsSet("daily-tracker-profile", p); }
   }, []);
 
@@ -152,10 +211,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }));
         const nextIds = new Set(next.map((p) => p.id));
         for (const p of prev) {
-          if (!nextIds.has(p.id)) supabase!.from("projects").delete().eq("id", p.id).then(() => {});
+          if (!nextIds.has(p.id)) supabase!.from("projects").delete().eq("id", p.id).then(
+            () => {},
+            (error: unknown) => { console.error("Failed to delete project:", error); }
+          );
         }
         for (const row of rows) {
-          supabase!.from("projects").upsert(row, { onConflict: "id" }).then(() => {});
+          supabase!.from("projects").upsert(row, { onConflict: "id" }).then(
+            () => {},
+            (error: unknown) => { console.error("Failed to save project:", error); }
+          );
         }
       } else { lsSet("daily-tracker-projects", next); }
       return next;

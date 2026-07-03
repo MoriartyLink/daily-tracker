@@ -15,7 +15,7 @@ function formatDate(d: Date) { return d.toLocaleDateString("en-US", { weekday: "
 function formatDateLong(d: Date) { return d.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" }); }
 
 function createEmptyEntry(date: string): DailyEntry {
-  return { id: Date.now().toString() + Math.random().toString(36).substr(2, 9), date, tasks: [], mentalStatus: { morning: 2, afternoon: 2, night: 2 }, physicalStatus: "good", physicalNote: "", mentalNote: "", journal: "", bestThing: "", proudThings: "", lessonLearned: "", lessonChange: "", excitedAbout: "" };
+  return { id: crypto.randomUUID(), date, tasks: [], mentalStatus: { morning: 2, afternoon: 2, night: 2 }, physicalStatus: "good", physicalNote: "", mentalNote: "", journal: "", bestThing: "", proudThings: "", lessonLearned: "", lessonChange: "", excitedAbout: "" };
 }
 function createEmptyTask(): Task {
   return { id: Date.now().toString() + Math.random().toString(36).substr(2, 9), task: "", outcome: "", system: "", mission: "", completed: false };
@@ -157,11 +157,19 @@ export function JournalPage() {
   const entry = entries[dateKey] || createEmptyEntry(dateKey);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
 
-  const save = useCallback((updates: Partial<DailyEntry>) => {
-    updateEntry(dateKey, { ...entry, ...updates });
+  const save = useCallback(async (updates: Partial<DailyEntry>) => {
+    const updatedEntry = { ...entry, ...updates };
+    updateEntry(dateKey, updatedEntry);
     setSaveStatus("saving");
-    setTimeout(() => setSaveStatus("saved"), 800);
-    setTimeout(() => setSaveStatus("idle"), 2500);
+    try {
+      // Wait for the state update to complete
+      await new Promise(resolve => setTimeout(resolve, 100));
+      setSaveStatus("saved");
+      setTimeout(() => setSaveStatus("idle"), 2500);
+    } catch (error) {
+      console.error("Save failed:", error);
+      setSaveStatus("idle");
+    }
   }, [dateKey, entry, updateEntry]);
 
   const addTask = () => save({ tasks: [...entry.tasks, createEmptyTask()] });
