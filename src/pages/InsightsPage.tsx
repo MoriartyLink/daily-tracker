@@ -41,7 +41,7 @@ function getMonthRange(monthKey: string): { start: Date; end: Date } {
 
 interface OutcomeItem { task: string; outcome: string; system: string; mission: string; completed: boolean; date: string; }
 
-const GROQ_API_KEY = 'import.meta.env.VITE_GROQ_API_KEY';
+const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY || '';
 
 async function summarizeReflectiveQuestions(facts: string[], mode: 'weekly' | 'monthly'): Promise<string> {
   if (facts.length === 0) return 'No reflective questions to summarize.';
