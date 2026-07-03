@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { Plus, Trash2, Calendar as CalendarIcon, Brain, Heart, ChevronLeft, ChevronRight, CheckCircle2, Download, RefreshCw } from "lucide-react";
+import { Plus, Trash2, Brain, Heart, ChevronLeft, ChevronRight, CheckCircle2, Download, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,7 +11,6 @@ import { useData } from "@/contexts/DataContext";
 import type { DailyEntry, Task, MentalRating, PhysicalStatus } from "@/types";
 
 function getDateString(d: Date) { return d.toISOString().split("T")[0]; }
-function formatDate(d: Date) { return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }); }
 function formatDateLong(d: Date) { return d.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" }); }
 
 function createEmptyEntry(date: string): DailyEntry {
@@ -180,9 +179,6 @@ export function JournalPage() {
 
   const goToPrevDay = () => { const d = new Date(currentDate); d.setDate(d.getDate() - 1); setCurrentDate(d); };
   const goToNextDay = () => { const d = new Date(currentDate); d.setDate(d.getDate() + 1); setCurrentDate(d); };
-  const goToToday = () => setCurrentDate(new Date());
-  const isToday = dateKey === getDateString(new Date());
-
   const handleDownloadMd = () => {
     try {
       const md = generateMarkdown(entry, currentDate);

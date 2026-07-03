@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
 import { supabase, isSupabaseConfigured, signInWithPassword, signUp as supabaseSignUp, signOut, onAuthStateChange } from "@/lib/supabase";
-import type { DailyEntry, UserProfile, Project } from "@/types";
+import type { DailyEntry, UserProfile, Project, Fact } from "@/types";
 
 // ── Types ──
 interface DataContextType {
@@ -105,10 +105,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
           setProfile({ 
             id: pRes.data.id, 
             name: pRes.data.name || "", 
-            email: (pRes.data as Record<string, unknown>).email || "", 
+            email: ((pRes.data as Record<string, unknown>).email as string) || "", 
             avatar: pRes.data.avatar || "", 
             goals: pRes.data.goals || [], 
-            facts: (pRes.data as Record<string, unknown>).facts || [] 
+            facts: ((pRes.data as Record<string, unknown>).facts as Fact[]) || [] 
           });
         }
         if (prRes.data) {
