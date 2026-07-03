@@ -102,7 +102,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
           setEntries(map);
         }
         if (pRes.data) {
-          setProfile({ id: pRes.data.id, name: pRes.data.name, email: pRes.data.email || "", avatar: pRes.data.avatar, goals: pRes.data.goals, facts: pRes.data.facts || [] });
+          setProfile({ 
+            id: pRes.data.id, 
+            name: pRes.data.name || "", 
+            email: (pRes.data as Record<string, unknown>).email || "", 
+            avatar: pRes.data.avatar || "", 
+            goals: pRes.data.goals || [], 
+            facts: (pRes.data as Record<string, unknown>).facts || [] 
+          });
         }
         if (prRes.data) {
           setProjectsState(prRes.data.map((r: Record<string, unknown>) => ({
@@ -190,12 +197,27 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const updateProfileFn = useCallback((p: UserProfile) => {
     setProfile(p);
     if (isSupabaseConfigured && supabase) {
-      supabase.from("user_profile").update({
-        id: p.id, name: p.name, email: p.email, avatar: p.avatar, goals: p.goals, facts: p.facts, updated_at: new Date().toISOString(),
-      }).then(
-        () => {},
-        (error: unknown) => { console.error("Failed to save profile:", error); }
-      );
+      if (!p.id) {
+        // Insert a new profile row if no id exists yet
+        supabase.from("user_profile").insert({
+          name: p.name, email: p.email, avatar: p.avatar, goals: p.goals, facts: p.facts,
+        }).select().then(
+          (result) => {
+            if (result.data?.[0]?.id) {
+              setProfile((prev) => ({ ...prev, id: result.data[0].id }));
+            }
+            console.log("✅ Profile saved to Supabase:", result);
+          },
+          (error: unknown) => { console.error("❌ Failed to insert profile:", error); }
+        );
+      } else {
+        supabase.from("user_profile").update({
+          name: p.name, email: p.email, avatar: p.avatar, goals: p.goals, facts: p.facts, updated_at: new Date().toISOString(),
+        }).eq("id", p.id).then(
+          () => { console.log("✅ Profile updated in Supabase"); },
+          (error: unknown) => { console.error("❌ Failed to save profile:", error); }
+        );
+      }
     } else { lsSet("daily-tracker-profile", p); }
   }, []);
 

@@ -24,8 +24,10 @@ create table if not exists daily_entries (
 create table if not exists user_profile (
   id uuid primary key default gen_random_uuid(),
   name text not null default '',
+  email text not null default '',
   avatar text not null default '',
   goals jsonb not null default '[]',
+  facts jsonb not null default '[]',
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );

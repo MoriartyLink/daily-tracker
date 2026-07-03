@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { Plus, Trash2, Calendar, Brain, Heart, ChevronLeft, ChevronRight, CheckCircle2, Download } from "lucide-react";
+import { Plus, Trash2, Calendar as CalendarIcon, Brain, Heart, ChevronLeft, ChevronRight, CheckCircle2, Download, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -207,15 +207,23 @@ export function JournalPage() {
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => save({})} className="gap-1.5 text-xs h-8 border-zinc-700 text-zinc-300 hover:text-white">
-            {saveStatus === "saving" ? "Saving..." : saveStatus === "saved" ? "Saved!" : "Save"}
+            {saveStatus === "saving" ? <><RefreshCw className="w-3.5 h-3.5 animate-spin" />Syncing...</> : saveStatus === "saved" ? <><CheckCircle2 className="w-3.5 h-3.5" />Saved</> : <><RefreshCw className="w-3.5 h-3.5" />Save</>}
           </Button>
           <Button variant="outline" size="sm" onClick={handleDownloadMd} className="gap-1.5 text-xs h-8 border-zinc-700 text-zinc-300 hover:text-white">
             <Download className="w-3.5 h-3.5" />Export .md
           </Button>
           <Button variant="ghost" size="icon" onClick={goToPrevDay}><ChevronLeft className="w-4 h-4" /></Button>
-          <Button variant={isToday ? "default" : "outline"} size="sm" onClick={goToToday} className="min-w-[140px] gap-2">
-            <Calendar className="w-3.5 h-3.5" />{formatDate(currentDate)}
-          </Button>
+          <div className="relative">
+            <Input
+              type="date"
+              value={dateKey}
+              onChange={(e) => {
+                const newDate = new Date(e.target.value);
+                if (!isNaN(newDate.getTime())) setCurrentDate(newDate);
+              }}
+              className="w-44 h-9 text-xs bg-zinc-900 border-zinc-700 text-zinc-200 cursor-pointer"
+            />
+          </div>
           <Button variant="ghost" size="icon" onClick={goToNextDay}><ChevronRight className="w-4 h-4" /></Button>
         </div>
       </div>

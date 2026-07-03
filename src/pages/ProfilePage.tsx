@@ -12,7 +12,11 @@ export function ProfilePage() {
   const [saved, setSaved] = useState(false);
 
   const update = (updates: Partial<typeof profile>) => updateProfile({ ...profile, ...updates });
-  const handleSave = () => { setSaved(true); setTimeout(() => setSaved(false), 2000); };
+  const handleSave = () => { 
+    updateProfile({ ...profile });
+    setSaved(true); 
+    setTimeout(() => setSaved(false), 2000); 
+  };
 
   return (
     <div className="fade-in space-y-5 max-w-3xl ml-auto mr-6">
