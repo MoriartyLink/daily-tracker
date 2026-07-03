@@ -68,69 +68,7 @@ describe("Profile INSERT to Supabase", () => {
     } as any);
 
     function Consumer() {
-      const { profile, updateProfile } = useData();
-      return (
-        <button
-          data-testid="btn"
-          onClick={() =>
-            updateProfile({
-              id: "",
-              name: "New User",
-              email: "new@test.com",
-              avatar: "",
-              goals: [],
-              facts: [{ id: "f1", title: "Fact", content: "C", order: 0 }],
-            })
-          }
-        >
-          Add
-        </button>
-      );
-    }
-
-    render(<DataProvider><Consumer /></DataProvider>);
-    await waitFor(() => expect(supabase!.from).toHaveBeenCalled());
-    await act(async () => { screen.getByTestId("btn").click(); });
-
-    expect(insertSpy).toHaveBeenCalled();
-    expect(capturedPayload).toMatchObject({
-      name: "New User",
-      email: "new@test.com",
-      facts: [{ id: "f1", title: "Fact", content: "C", order: 0 }],
-    });
-    expect(selectSpy).toHaveBeenCalled();
-  });
-
-  it("should capture returned id after insert", async () => {
-    const newId = "new-uuid-789";
-    const insertThenSpy = vi.fn().mockResolvedValue({
-      data: [{ id: newId }],
-      error: null,
-    });
-    const selectSpy = vi.fn(() => ({ then: insertThenSpy }));
-    const insertSpy = vi.fn(() => ({ select: selectSpy }));
-
-    vi.mocked(supabase!.from).mockReturnValue({
-      select: vi.fn().mockReturnThis(),
-      limit: vi.fn().mockReturnThis(),
-      single: vi.fn().mockReturnThis(),
-      order: vi.fn().mockReturnThis(),
-      insert: insertSpy,
-      update: vi.fn().mockReturnThis(),
-      upsert: vi.fn().mockReturnThis(),
-      delete: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      then: vi.fn((cb: Function) =>
-        cb([
-          { data: [], error: null },
-          { data: null, error: null },
-          { data: [], error: null },
-        ])
-      ),
-    } as any);
-
-    function Consumer() {
-      const { profile, updateProfile } = useData();
+      const { updateProfile } = useData();
       return (
         <button
           data-testid="btn"

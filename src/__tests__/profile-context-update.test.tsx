@@ -37,7 +37,7 @@ const MOCK_ROW = {
   updated_at: "2024-01-01T00:00:00Z",
 };
 
-function mockDb(eqSpy: any, updateSpy: any, updateThenSpy: any) {
+function mockDb(eqSpy: any, updateSpy: any, _updateThenSpy?: any) {
   vi.mocked(supabase!.from).mockReturnValue({
     select: vi.fn().mockReturnThis(),
     limit: vi.fn().mockReturnThis(),

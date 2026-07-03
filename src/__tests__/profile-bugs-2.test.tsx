@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, act } from "@testing-library/react";
 import { DataProvider, useData } from "@/contexts/DataContext";
 import { supabase } from "@/lib/supabase";
-import type { UserProfile } from "@/types";
 
 vi.mock("@/lib/supabase", () => {
   const ms = {
@@ -38,7 +37,7 @@ const MOCK_ROW = {
   updated_at: "2024-01-01T00:00:00Z",
 };
 
-function mockDb(eqSpy: any, updateSpy: any, updateThenSpy: any) {
+function mockDb(eqSpy: any, updateSpy: any, _updateThenSpy?: any) {
   vi.mocked(supabase!.from).mockReturnValue({
     select: vi.fn().mockReturnThis(),
     limit: vi.fn().mockReturnThis(),
@@ -162,8 +161,6 @@ describe("BUG #5: No error boundary / error state in DataContext", () => {
     } as any);
 
     // Check that DataContext type doesn't have an error field
-    const { DataContextType } = await import("@/contexts/DataContext");
-    // Can't easily check interface at runtime, but we can verify the provided value
     // The context provides: entries, updateEntry, profile, updateProfile, projects, setProjects, loading, isCloud, user, login, signup, logout
     // No error/errorMessage field exists
     console.log("⚠️ BUG #5: DataContext provides no error state, failures are invisible to UI");

@@ -1,10 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, act } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { DataProvider } from "@/contexts/DataContext";
 import { ProfilePage } from "@/pages/ProfilePage";
 import { supabase } from "@/lib/supabase";
-import type { ReactNode } from "react";
 
 vi.mock("@/lib/supabase", () => {
   const ms = {
@@ -163,12 +161,6 @@ describe("ProfilePage Component", () => {
       expect(screen.getByDisplayValue("Loves coding")).toBeInTheDocument();
     });
 
-    // Find all trash buttons and click the first one
-    const trashButtons = screen.getAllByRole("button").filter(
-      (btn) => btn.innerHTML.includes("Trash2") || btn.querySelector("svg")
-    );
-
-    // The trash button is the last button in each fact row
     // Let's count the fact rows before delete
     let titleInputs = screen.getAllByPlaceholderText("Title");
     expect(titleInputs).toHaveLength(2);
@@ -176,7 +168,7 @@ describe("ProfilePage Component", () => {
     // Click delete on first fact - find SVG with trash icon
     const deleteBtn = screen.getByDisplayValue("Loves coding")
       .closest(".flex")!
-      .querySelector("button:last-of-type");
+      .querySelector("button:last-of-type") as HTMLButtonElement | null;
     
     if (deleteBtn) {
       await act(async () => { deleteBtn.click(); });
