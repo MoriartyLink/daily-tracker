@@ -205,7 +205,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           }
         );
       } else {
-        console.log("🔵 Using localStorage instead of Supabase");
+        console.log("🔵 Using localStorage instead of Supabase — user:", !!user, "supabase:", !!supabase, "configured:", isSupabaseConfigured);
         lsSet("daily-tracker-entries", next);
       }
       return next;
