@@ -56,19 +56,22 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (isElectron()) {
       try {
         const api = window.electronAPI!;
-        const [loadedEntries, loadedProfile, loadedProjects, path] = await Promise.all([
+        const [loadedEntries, loadedProfile, loadedProjects, loadedMeetings, loadedPeople, loadedBacklog, path] = await Promise.all([
           api.loadAllEntries(),
           api.loadProfile(),
           api.loadAllProjects(),
+          api.loadAllMeetings(),
+          api.loadAllPeople(),
+          api.loadAllBacklogItems(),
           api.getVaultPath(),
         ]);
         setEntries(loadedEntries || {});
         setProfile(loadedProfile || defaultProfile);
         setProjectsState(loadedProjects || []);
         setVaultPath(path || "");
-        setMeetingsState(lsGet("daily-tracker-meetings", []));
-        setPeopleState(lsGet("daily-tracker-people", []));
-        setBacklogItemsState(lsGet("daily-tracker-backlog", []));
+        setMeetingsState(loadedMeetings || []);
+        setPeopleState(loadedPeople || []);
+        setBacklogItemsState(loadedBacklog || []);
       } catch (err) {
         console.error("Failed to load data from vault:", err);
       }
@@ -141,7 +144,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const setMeetings = useCallback((fn: Meeting[] | ((prev: Meeting[]) => Meeting[])) => {
     setMeetingsState((prev) => {
       const next = typeof fn === "function" ? fn(prev) : fn;
-      lsSet("daily-tracker-meetings", next);
+      if (isElectron()) {
+        const api = window.electronAPI!;
+        const nextIds = new Set(next.map(m => m.id));
+        for (const m of prev) {
+          if (!nextIds.has(m.id)) {
+            api.deleteMeeting(m.id).catch((err: unknown) => console.error("Failed to delete meeting:", err));
+          }
+        }
+        for (const m of next) {
+          api.saveMeeting(m).catch((err: unknown) => console.error("Failed to save meeting:", err));
+        }
+      } else {
+        lsSet("daily-tracker-meetings", next);
+      }
       return next;
     });
   }, []);
@@ -149,7 +165,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const setPeople = useCallback((fn: Person[] | ((prev: Person[]) => Person[])) => {
     setPeopleState((prev) => {
       const next = typeof fn === "function" ? fn(prev) : fn;
-      lsSet("daily-tracker-people", next);
+      if (isElectron()) {
+        const api = window.electronAPI!;
+        const nextIds = new Set(next.map(p => p.id));
+        for (const p of prev) {
+          if (!nextIds.has(p.id)) {
+            api.deletePerson(p.id).catch((err: unknown) => console.error("Failed to delete person:", err));
+          }
+        }
+        for (const p of next) {
+          api.savePerson(p).catch((err: unknown) => console.error("Failed to save person:", err));
+        }
+      } else {
+        lsSet("daily-tracker-people", next);
+      }
       return next;
     });
   }, []);
@@ -157,7 +186,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const setBacklogItems = useCallback((fn: BacklogItem[] | ((prev: BacklogItem[]) => BacklogItem[])) => {
     setBacklogItemsState((prev) => {
       const next = typeof fn === "function" ? fn(prev) : fn;
-      lsSet("daily-tracker-backlog", next);
+      if (isElectron()) {
+        const api = window.electronAPI!;
+        const nextIds = new Set(next.map(i => i.id));
+        for (const i of prev) {
+          if (!nextIds.has(i.id)) {
+            api.deleteBacklogItem(i.id).catch((err: unknown) => console.error("Failed to delete backlog item:", err));
+          }
+        }
+        for (const i of next) {
+          api.saveBacklogItem(i).catch((err: unknown) => console.error("Failed to save backlog item:", err));
+        }
+      } else {
+        lsSet("daily-tracker-backlog", next);
+      }
       return next;
     });
   }, []);

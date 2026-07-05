@@ -40,6 +40,9 @@ function ensureVault() {
     vaultPath,
     path.join(vaultPath, "journal"),
     path.join(vaultPath, "projects"),
+    path.join(vaultPath, "meetings"),
+    path.join(vaultPath, "people"),
+    path.join(vaultPath, "backlog"),
   ];
   for (const dir of dirs) {
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -165,6 +168,99 @@ function parseProjectMd(content) {
     createdAt: meta.createdAt || "",
     milestones: (meta.milestones || []).map(m => typeof m === "string" ? JSON.parse(m) : m),
     cards: (meta.cards || []).map(c => typeof c === "string" ? JSON.parse(c) : c),
+  };
+}
+
+// ── Meeting ↔ .md ──
+function buildMeetingMd(meeting) {
+  const meta = {
+    id: meeting.id || "",
+    title: meeting.title || "",
+    date: meeting.date || "",
+    time: meeting.time || "",
+    reminder: meeting.reminder || false,
+    agenda: meeting.agenda || "",
+    minutes: meeting.minutes || "",
+    transcription: meeting.transcription || "",
+    participants: meeting.participants || [],
+    createdAt: meeting.createdAt || new Date().toISOString(),
+  };
+  return buildFrontmatter(meta);
+}
+
+function parseMeetingMd(content) {
+  const { meta } = parseFrontmatter(content);
+  return {
+    id: meta.id || "",
+    title: meta.title || "",
+    date: meta.date || "",
+    time: meta.time || "",
+    reminder: meta.reminder === true || meta.reminder === "true",
+    agenda: meta.agenda || "",
+    minutes: meta.minutes || "",
+    transcription: meta.transcription || "",
+    participants: (meta.participants || []).map(p => typeof p === "string" ? p : String(p)),
+    createdAt: meta.createdAt || "",
+  };
+}
+
+// ── Person ↔ .md ──
+function buildPersonMd(person) {
+  const meta = {
+    id: person.id || "",
+    name: person.name || "",
+    relationshipStatus: person.relationshipStatus || "",
+    wants: person.wants || "",
+    goal: person.goal || "",
+    telegramUsername: person.telegramUsername || "",
+    email: person.email || "",
+    notes: person.notes || "",
+    connections: person.connections || [],
+    createdAt: person.createdAt || new Date().toISOString(),
+  };
+  return buildFrontmatter(meta);
+}
+
+function parsePersonMd(content) {
+  const { meta } = parseFrontmatter(content);
+  return {
+    id: meta.id || "",
+    name: meta.name || "",
+    relationshipStatus: meta.relationshipStatus || "",
+    wants: meta.wants || "",
+    goal: meta.goal || "",
+    telegramUsername: meta.telegramUsername || "",
+    email: meta.email || "",
+    notes: meta.notes || "",
+    connections: (meta.connections || []).map(c => typeof c === "string" ? c : String(c)),
+    createdAt: meta.createdAt || "",
+  };
+}
+
+// ── Backlog item ↔ .md ──
+function buildBacklogMd(item) {
+  const meta = {
+    id: item.id || "",
+    content: item.content || "",
+    type: item.type || "braindump",
+    cynefinDomain: item.cynefinDomain || "disorder",
+    createdAt: item.createdAt || new Date().toISOString(),
+    tags: item.tags || [],
+    done: item.done || false,
+  };
+  return buildFrontmatter(meta);
+}
+
+function parseBacklogMd(content) {
+  const { meta } = parseFrontmatter(content);
+  return {
+    id: meta.id || "",
+    content: meta.content || "",
+    type: meta.type || "braindump",
+    cynefinDomain: meta.cynefinDomain || "disorder",
+    createdAt: meta.createdAt || "",
+    tags: (meta.tags || []).map(t => typeof t === "string" ? t : String(t)),
+    done: meta.done === true || meta.done === "true",
   };
 }
 
@@ -514,6 +610,102 @@ ipcMain.handle("projects:delete", (_event, projectId) => {
   if (fs.existsSync(filePath)) {
     fs.unlinkSync(filePath);
   }
+  return true;
+});
+
+// ── Meetings ──
+ipcMain.handle("meetings:loadAll", () => {
+  const dir = path.join(vaultPath, "meetings");
+  if (!fs.existsSync(dir)) return [];
+  const files = fs.readdirSync(dir).filter(f => f.endsWith(".md"));
+  const list = [];
+  for (const file of files) {
+    try {
+      list.push(parseMeetingMd(fs.readFileSync(path.join(dir, file), "utf-8")));
+    } catch (err) {
+      console.error(`Failed to parse meetings/${file}:`, err.message);
+    }
+  }
+  return list.sort((a, b) => (a.date || "").localeCompare(b.date || "") || (a.time || "").localeCompare(b.time || ""));
+});
+
+ipcMain.handle("meetings:save", (_event, meeting) => {
+  const dir = path.join(vaultPath, "meetings");
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  const filename = `${safeFilename(meeting.id)}.md`;
+  fs.writeFileSync(path.join(dir, filename), buildMeetingMd(meeting), "utf-8");
+  return true;
+});
+
+ipcMain.handle("meetings:delete", (_event, meetingId) => {
+  const dir = path.join(vaultPath, "meetings");
+  const filename = `${safeFilename(meetingId)}.md`;
+  const filePath = path.join(dir, filename);
+  if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+  return true;
+});
+
+// ── People ──
+ipcMain.handle("people:loadAll", () => {
+  const dir = path.join(vaultPath, "people");
+  if (!fs.existsSync(dir)) return [];
+  const files = fs.readdirSync(dir).filter(f => f.endsWith(".md"));
+  const list = [];
+  for (const file of files) {
+    try {
+      list.push(parsePersonMd(fs.readFileSync(path.join(dir, file), "utf-8")));
+    } catch (err) {
+      console.error(`Failed to parse people/${file}:`, err.message);
+    }
+  }
+  return list.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+});
+
+ipcMain.handle("people:save", (_event, person) => {
+  const dir = path.join(vaultPath, "people");
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  const filename = `${safeFilename(person.id)}.md`;
+  fs.writeFileSync(path.join(dir, filename), buildPersonMd(person), "utf-8");
+  return true;
+});
+
+ipcMain.handle("people:delete", (_event, personId) => {
+  const dir = path.join(vaultPath, "people");
+  const filename = `${safeFilename(personId)}.md`;
+  const filePath = path.join(dir, filename);
+  if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+  return true;
+});
+
+// ── Backlog ──
+ipcMain.handle("backlog:loadAll", () => {
+  const dir = path.join(vaultPath, "backlog");
+  if (!fs.existsSync(dir)) return [];
+  const files = fs.readdirSync(dir).filter(f => f.endsWith(".md"));
+  const list = [];
+  for (const file of files) {
+    try {
+      list.push(parseBacklogMd(fs.readFileSync(path.join(dir, file), "utf-8")));
+    } catch (err) {
+      console.error(`Failed to parse backlog/${file}:`, err.message);
+    }
+  }
+  return list.sort((a, b) => (a.createdAt || "").localeCompare(b.createdAt || ""));
+});
+
+ipcMain.handle("backlog:save", (_event, item) => {
+  const dir = path.join(vaultPath, "backlog");
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  const filename = `${safeFilename(item.id)}.md`;
+  fs.writeFileSync(path.join(dir, filename), buildBacklogMd(item), "utf-8");
+  return true;
+});
+
+ipcMain.handle("backlog:delete", (_event, itemId) => {
+  const dir = path.join(vaultPath, "backlog");
+  const filename = `${safeFilename(itemId)}.md`;
+  const filePath = path.join(dir, filename);
+  if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
   return true;
 });
 

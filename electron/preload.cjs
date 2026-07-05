@@ -19,6 +19,21 @@ contextBridge.exposeInMainWorld("electronAPI", {
   saveProject: (project) => ipcRenderer.invoke("projects:save", project),
   deleteProject: (projectId) => ipcRenderer.invoke("projects:delete", projectId),
 
+  // Meetings
+  loadAllMeetings: () => ipcRenderer.invoke("meetings:loadAll"),
+  saveMeeting: (meeting) => ipcRenderer.invoke("meetings:save", meeting),
+  deleteMeeting: (meetingId) => ipcRenderer.invoke("meetings:delete", meetingId),
+
+  // People
+  loadAllPeople: () => ipcRenderer.invoke("people:loadAll"),
+  savePerson: (person) => ipcRenderer.invoke("people:save", person),
+  deletePerson: (personId) => ipcRenderer.invoke("people:delete", personId),
+
+  // Backlog
+  loadAllBacklogItems: () => ipcRenderer.invoke("backlog:loadAll"),
+  saveBacklogItem: (item) => ipcRenderer.invoke("backlog:save", item),
+  deleteBacklogItem: (itemId) => ipcRenderer.invoke("backlog:delete", itemId),
+
   // Search
   searchVault: (query) => ipcRenderer.invoke("vault:search", query),
 
