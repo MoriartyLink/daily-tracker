@@ -34,3 +34,5 @@ release/
 
 # Local vault data
 data/
+
+.vscode/mcp.json
