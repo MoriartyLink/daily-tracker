@@ -8,19 +8,17 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { useData } from "@/contexts/DataContext";
-import type { DailyEntry, Task, MentalRating, PhysicalStatus } from "@/types";
+import type { DailyEntry, Task, PhysicalStatus } from "@/types";
 
 function getDateString(d: Date) { return d.toISOString().split("T")[0]; }
 function formatDateLong(d: Date) { return d.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" }); }
 
 function createEmptyEntry(date: string): DailyEntry {
-  return { id: crypto.randomUUID(), date, tasks: [], mentalStatus: { morning: 2, afternoon: 2, night: 2 }, physicalStatus: "good", physicalNote: "", mentalNote: "", journal: "", bestThing: "", proudThings: "", lessonLearned: "", lessonChange: "", excitedAbout: "" };
+  return { id: crypto.randomUUID(), date, tasks: [], mentalStatus: { morning: 2, afternoon: 2, night: 2 }, physicalStatus: "good", physicalNote: "", mentalNote: "", journal: "", bestThing: "", proudThings: "", lessonLearned: "", lessonChange: "", excitedAbout: "", happyToday: "", surprisedCanDo: "", happyIfProgress: "", notHappyToday: "" };
 }
 function createEmptyTask(): Task {
   return { id: Date.now().toString() + Math.random().toString(36).substr(2, 9), task: "", outcome: "", system: "", mission: "", completed: false };
 }
-
-function mentalLabel(v: number) { return v === 1 ? "Low" : v === 2 ? "Medium" : "High"; }
 
 function TaskField({ value, onChange, placeholder }: { value: string; onChange: (value: string) => void; placeholder: string }) {
   const ref = useRef<HTMLTextAreaElement>(null);
@@ -68,19 +66,25 @@ function generateMarkdown(entry: DailyEntry, date: Date): string {
   }
   lines.push("");
 
-  // Mental Status
-  lines.push("## Mental Status");
+  // Mental Reflection
+  lines.push("## Mental Reflection");
   lines.push("");
-  lines.push(`| Period    | Rating |`);
-  lines.push(`|-----------|--------|`);
-  lines.push(`| Morning   | ${mentalLabel(entry.mentalStatus.morning)} (${entry.mentalStatus.morning}/3) |`);
-  lines.push(`| Afternoon | ${mentalLabel(entry.mentalStatus.afternoon)} (${entry.mentalStatus.afternoon}/3) |`);
-  lines.push(`| Night     | ${mentalLabel(entry.mentalStatus.night)} (${entry.mentalStatus.night}/3) |`);
-  if (entry.mentalNote.trim()) {
+  if (entry.happyToday.trim()) {
+    lines.push("**🙏 I am already happy with what I have today:** " + entry.happyToday);
     lines.push("");
-    lines.push(`**Note:** ${entry.mentalNote}`);
   }
-  lines.push("");
+  if (entry.surprisedCanDo.trim()) {
+    lines.push("**😮 I am surprised to see that I can do:** " + entry.surprisedCanDo);
+    lines.push("");
+  }
+  if (entry.happyIfProgress.trim()) {
+    lines.push("**🎯 I will be happy if I make progress in this area:** " + entry.happyIfProgress);
+    lines.push("");
+  }
+  if (entry.notHappyToday.trim()) {
+    lines.push("**💪 I am not happy with what I have today:** " + entry.notHappyToday);
+    lines.push("");
+  }
 
   // Physical Status
   lines.push("## Physical Status");
@@ -275,40 +279,47 @@ export function JournalPage() {
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Mental Status */}
-        <Card className="glow-blue-subtle">
+        {/* Mental Reflection */}
+        <Card className="glow-blue-subtle lg:col-span-2">
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-lg bg-purple-500/10 flex items-center justify-center"><Brain className="w-4 h-4 text-purple-400" /></div>
-              <span className="text-zinc-100">Mental Status</span>
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-purple-500/10 flex items-center justify-center"><Brain className="w-4 h-4 text-purple-400" /></div>
+                <span className="text-zinc-100">Mental Reflection</span>
+              </CardTitle>
+            </div>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {(["morning", "afternoon", "night"] as const).map((period) => (
-              <div key={period}>
-                <span className="text-xs font-medium text-zinc-400 capitalize block mb-2">{period}</span>
-                <RadioGroup
-                  value={String(entry.mentalStatus[period])}
-                  onValueChange={(v: string) => save({ mentalStatus: { ...entry.mentalStatus, [period]: parseInt(v) as MentalRating } })}
-                  className="flex items-center gap-2"
-                >
-                  <span className="text-[10px] text-zinc-500 font-medium w-6">Low</span>
-                  <RadioGroupItem value="1" id={`mental-${period}-1`} />
-                  <RadioGroupItem value="2" id={`mental-${period}-2`} />
-                  <RadioGroupItem value="3" id={`mental-${period}-3`} />
-                  <span className="text-[10px] text-zinc-500 font-medium w-8">High</span>
-                </RadioGroup>
-              </div>
-            ))}
-            <Separator className="bg-zinc-700/50" />
-            <div>
-              <Label className="text-xs text-zinc-400">Note</Label>
-              <Input placeholder="Any notes about your mental state..." value={entry.mentalNote} onChange={(e) => save({ mentalNote: e.target.value })} className="mt-1.5 h-9 text-xs bg-zinc-900 border-zinc-700 text-zinc-200 placeholder:text-zinc-600" />
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="task-table">
+                <thead>
+                  <tr>
+                    <th className="w-[180px]"></th>
+                    <th>Notes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td className="text-xs text-zinc-400 font-medium">I am already happy with what I have today</td>
+                    <td><TaskField placeholder="What are you grateful for today?" value={entry.happyToday} onChange={(value) => save({ happyToday: value })} /></td>
+                  </tr>
+                  <tr>
+                    <td className="text-xs text-zinc-400 font-medium">I am surprised to see that I can do</td>
+                    <td><TaskField placeholder="What surprised you about yourself today?" value={entry.surprisedCanDo} onChange={(value) => save({ surprisedCanDo: value })} /></td>
+                  </tr>
+                  <tr>
+                    <td className="text-xs text-zinc-400 font-medium">I will be happy if I make progress in this area</td>
+                    <td><TaskField placeholder="What area do you want to progress in?" value={entry.happyIfProgress} onChange={(value) => save({ happyIfProgress: value })} /></td>
+                  </tr>
+                  <tr>
+                    <td className="text-xs text-zinc-400 font-medium">I am not happy with what I have today</td>
+                    <td><TaskField placeholder="What is bothering you? What needs to change?" value={entry.notHappyToday} onChange={(value) => save({ notHappyToday: value })} /></td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </CardContent>
         </Card>
-
-        {/* Physical Status */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2.5">
@@ -379,37 +390,6 @@ export function JournalPage() {
         </CardContent>
       </Card>
 
-      {/* Reflective Questions */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-purple-500/10 flex items-center justify-center"><CheckCircle2 className="w-4 h-4 text-purple-400" /></div>
-            <span className="text-zinc-100">Reflective Questions</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label className="text-xs text-zinc-400">What is the best thing that happened today?</Label>
-            <Input placeholder="Share the highlight of your day..." value={entry.bestThing} onChange={(e) => save({ bestThing: e.target.value })} className="mt-1.5 h-9 text-xs bg-zinc-900 border-zinc-700 text-zinc-200 placeholder:text-zinc-600" />
-          </div>
-          <div>
-            <Label className="text-xs text-zinc-400">What things make you proud today?</Label>
-            <Input placeholder="What accomplishments or qualities are you proud of?" value={entry.proudThings} onChange={(e) => save({ proudThings: e.target.value })} className="mt-1.5 h-9 text-xs bg-zinc-900 border-zinc-700 text-zinc-200 placeholder:text-zinc-600" />
-          </div>
-          <div>
-            <Label className="text-xs text-zinc-400">What lesson did I learn today?</Label>
-            <Input placeholder="What did you learn from your experiences today?" value={entry.lessonLearned} onChange={(e) => save({ lessonLearned: e.target.value })} className="mt-1.5 h-9 text-xs bg-zinc-900 border-zinc-700 text-zinc-200 placeholder:text-zinc-600" />
-          </div>
-          <div>
-            <Label className="text-xs text-zinc-400">What will be changed by this lesson?</Label>
-            <Input placeholder="How will this lesson change your behavior or decisions going forward?" value={entry.lessonChange} onChange={(e) => save({ lessonChange: e.target.value })} className="mt-1.5 h-9 text-xs bg-zinc-900 border-zinc-700 text-zinc-200 placeholder:text-zinc-600" />
-          </div>
-          <div>
-            <Label className="text-xs text-zinc-400">What makes you excited today?</Label>
-            <Input placeholder="What are you looking forward to or feeling excited about?" value={entry.excitedAbout} onChange={(e) => save({ excitedAbout: e.target.value })} className="mt-1.5 h-9 text-xs bg-zinc-900 border-zinc-700 text-zinc-200 placeholder:text-zinc-600" />
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

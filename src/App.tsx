@@ -8,6 +8,9 @@ import { InsightsPage } from "@/pages/InsightsPage";
 import { ProjectPage } from "@/pages/ProjectPage";
 import { ProfilePage } from "@/pages/ProfilePage";
 import { SearchPage } from "@/pages/SearchPage";
+import { MeetingPage } from "@/pages/MeetingPage";
+import { PeoplePage } from "@/pages/PeoplePage";
+import { BacklogPage } from "@/pages/BacklogPage";
 import "@/types/electron";
 
 function MenuListener() {
@@ -53,6 +56,9 @@ function App() {
             <Route path="/insights" element={<AppLayout><InsightsPage /></AppLayout>} />
             <Route path="/profile" element={<AppLayout><ProfilePage /></AppLayout>} />
             <Route path="/search" element={<AppLayout><SearchPage /></AppLayout>} />
+            <Route path="/meeting" element={<AppLayout><MeetingPage /></AppLayout>} />
+            <Route path="/people" element={<AppLayout><PeoplePage /></AppLayout>} />
+            <Route path="/backlog" element={<AppLayout><BacklogPage /></AppLayout>} />
           </Routes>
         </SidebarProvider>
       </DataProvider>

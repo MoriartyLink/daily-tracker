@@ -2,51 +2,21 @@
   "name": "daily-tracker",
   "private": true,
   "version": "1.0.0",
-  "description": "Local-first desktop app for daily journaling, task tracking, and project management — stored as .md files",
+  "description": "Local-first desktop app for daily journaling, task tracking, and project management",
   "author": "MoriartyLink",
   "license": "MIT",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
     "dev": "vite",
-    "dev:electron": "concurrently -k \"ELECTRON_DEV=true wait-on http://localhost:5173 && electron .\" \"vite\"",
+    "dev:electron": "NO_AT_BRIDGE=1 concurrently -k \"ELECTRON_DEV=true wait-on http://localhost:5173 && electron .\" \"vite\"",
     "build": "tsc -b && vite build",
     "build:electron": "npm run build && electron-builder",
-    "start": "electron .",
+    "start": "NO_AT_BRIDGE=1 electron .",
     "lint": "oxlint",
     "test": "vitest run",
     "test:watch": "vitest",
     "preview": "vite preview"
-  },
-  "build": {
-    "appId": "com.dailytracker.app",
-    "productName": "Daily Tracker",
-    "directories": {
-      "output": "release"
-    },
-    "files": [
-      "dist/**/*",
-      "electron/**/*",
-      "public/**/*"
-    ],
-    "linux": {
-      "target": [
-        "AppImage",
-        "deb"
-      ],
-      "category": "Office"
-    },
-    "mac": {
-      "target": [
-        "dmg"
-      ],
-      "category": "public.app-category.productivity"
-    },
-    "win": {
-      "target": [
-        "nsis"
-      ]
-    }
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.18",

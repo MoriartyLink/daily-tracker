@@ -1,153 +1,94 @@
 # Daily Tracker
 
-A local-first desktop app for daily journaling, task tracking, project management, and personal insights — all stored as plain `.md` files in a local vault.
-
-> **Your data is yours.** Every entry is a markdown file on your disk. Open them in Obsidian, VS Code, or any text editor.
+Local-first desktop app for daily journaling, task tracking, projects, and insights. All data stored as plain `.md` files.
 
 ## Features
 
-- **Journal** — Daily entries with tasks, mood tracking (mental/physical), and reflections
-- **Projects** — Kanban boards with milestones, cards, priorities, and tags
-- **Insights** — Weekly/monthly charts for mood trends, task completion, and productivity
-- **Profile** — Personal goals with progress tracking and fun facts
-- **Local Vault** — All data stored as `.md` files with YAML frontmatter (Obsidian-compatible)
-- **Vault Picker** — Choose any directory as your vault, switch between vaults
-- **Backup** — Export/import full vault as JSON
-- **Offline** — No internet required, everything runs locally
+- **Journal** — Daily entries with tasks, physical status, and mental reflection prompts
+- **Projects** — Kanban boards with milestones, priorities, and tags
+- **Insights** — Weekly and monthly charts for reflection depth, task completion, and physical health
+- **Meeting** — Meeting management with agenda, minutes, transcription, and participants
+- **People** — Contact management with relationships, goals, and a brainstorming whiteboard
+- **Backlog** — Brain dump compiler with Cynefin framework classification
+- **Search** — Full-text search across journals, projects, and profile
+- **Profile** — Personal info, facts, and data management (import/export)
+- **Local Vault** — All data stored as `.md` files with YAML frontmatter, compatible with Obsidian
 
 ## Tech Stack
 
 - **Desktop:** Electron
-- **Frontend:** React + TypeScript + Vite
+- **Frontend:** React 19 + TypeScript + Vite
 - **UI:** shadcn/ui + Tailwind CSS v4
 - **Charts:** Recharts
 - **Storage:** Local filesystem (`.md` files with YAML frontmatter)
 - **Build:** electron-builder (AppImage, .deb, .dmg, NSIS)
 - **Testing:** Vitest + React Testing Library
 
-## Vault Structure
-
-```
-~/DailyTracker/                   ← Default vault (configurable)
-├── journal/
-│   ├── 2026-07-01.md             ← Daily entries
-│   ├── 2026-07-02.md
-│   └── 2026-07-03.md
-├── projects/
-│   ├── project-abc123.md         ← Kanban project data
-│   └── project-def456.md
-└── profile.md                    ← User profile, goals, facts
-```
-
-Each `.md` file uses YAML frontmatter for structured data and a markdown body for freeform content. Files are human-readable and can be edited in any markdown editor.
-
 ## Quick Start
 
-### 1. Clone and install
-
 ```bash
+# Install
 git clone https://github.com/MoriartyLink/daily-tracker.git
 cd daily-tracker
 npm install
-```
 
-### 2. Run in development mode
+# Development (browser mode with localStorage fallback)
+npm run dev
 
-```bash
-# Run Electron + Vite dev server together
+# Development (Electron desktop mode)
 npm run dev:electron
-```
 
-This starts Vite on `http://localhost:5173` and opens the Electron window pointed at it.
-
-> **Browser-only dev:** Run `npm run dev` to work in the browser with localStorage fallback (no Electron features).
-
-### 3. Run tests
-
-```bash
+# Tests
 npm test
-```
 
-### 4. Build for distribution
-
-```bash
+# Build for distribution
 npm run build:electron
 ```
 
-Output goes to `release/` — produces platform-specific packages:
-- **Linux:** AppImage + `.deb`
-- **macOS:** `.dmg`
-- **Windows:** NSIS installer
+## Vault Structure
+
+```
+vault/
+├── journal/
+│   ├── YYYY-MM-DD.md    # Daily entries
+├── projects/
+│   ├── project-id.md    # Kanban project data
+└── profile.md           # User profile, facts
+```
+
+Each `.md` file uses YAML frontmatter for structured data and a markdown body for freeform content. Files are human-readable and editable in any text editor.
+
+## Data Flow
+
+```
+[React UI] → [DataContext] → [electronAPI] → [IPC] → [main process] → [filesystem .md]
+```
+
+- **Electron mode:** Data flows through IPC to the main process which reads/writes `.md` files.
+- **Browser mode:** Falls back to `localStorage` for development.
 
 ## Architecture
 
 ```
 electron/
-  main.cjs             # Electron main process — vault I/O, IPC handlers, window management
-  preload.cjs          # Context bridge — exposes electronAPI to renderer
+  main.cjs            # Electron main process — vault I/O, IPC, window management
+  preload.cjs         # Context bridge — exposes electronAPI to renderer
 
 src/
-  components/          # Reusable UI components (shadcn/ui)
-  contexts/            # React contexts
-    DataContext.tsx     # Central data layer — Electron IPC ↔ localStorage fallback
-    SidebarContext.tsx  # Sidebar collapse state
-  hooks/               # Custom hooks
-  lib/                 # Utilities (cn helper)
-  pages/               # Route pages (Journal, Insights, Projects, Profile)
-  types/               # TypeScript interfaces + ElectronAPI type
-
-data/                  # Local development vault (gitignored)
-```
-
-### Data Flow
-
-```
-[React UI] ←→ [DataContext] ←→ [electronAPI (preload)] ←→ [IPC] ←→ [main.cjs] ←→ [Filesystem .md]
-```
-
-- **In Electron:** Data flows through IPC to the main process which reads/writes `.md` files
-- **In browser:** Falls back to `localStorage` for development convenience
-
-### IPC Channels
-
-| Channel | Direction | Description |
-|---------|-----------|-------------|
-| `vault:getPath` | main → renderer | Get current vault path |
-| `vault:changePath` | renderer → main | Open folder picker, switch vault |
-| `vault:openInExplorer` | renderer → main | Open vault folder in file manager |
-| `entries:loadAll` | main → renderer | Load all journal entries |
-| `entries:save` | renderer → main | Save a journal entry |
-| `profile:load` | main → renderer | Load user profile |
-| `profile:save` | renderer → main | Save user profile |
-| `projects:loadAll` | main → renderer | Load all projects |
-| `projects:save` | renderer → main | Save a project |
-| `projects:delete` | renderer → main | Delete a project file |
-| `data:exportBackup` | renderer → main | Export full vault as JSON |
-| `data:importBackup` | renderer → main | Import JSON backup into vault |
-
-## Keyboard Shortcuts
-
-| Shortcut | Action |
-|----------|--------|
-| `Ctrl+Shift+F` | Search vault (planned) |
-| `Ctrl+,` | Open settings/profile (planned) |
-
-## Development
-
-### Prerequisites
-
-- Node.js 20+
-- npm 10+
-
-### Dev commands
-
-```bash
-npm run dev           # Vite only (browser mode)
-npm run dev:electron  # Vite + Electron (full desktop mode)
-npm run build         # Build frontend
-npm run build:electron # Build frontend + package Electron app
-npm run test          # Run tests
-npm run lint          # Lint with oxlint
+  components/ui/      # shadcn/ui components
+  contexts/
+    DataContext.tsx    # Central state — Electron IPC + localStorage fallback
+    SidebarContext.tsx # Sidebar collapse state
+  pages/
+    JournalPage.tsx    # Daily journal entries
+    BacklogPage.tsx    # Brain dump with Cynefin classification
+    MeetingPage.tsx    # Meeting management
+    PeoplePage.tsx     # People relationships and whiteboard
+    ProjectPage.tsx    # Kanban project boards
+    InsightsPage.tsx   # Weekly/monthly charts
+    ProfilePage.tsx    # Profile, facts, data management
+    SearchPage.tsx     # Vault-wide search
+  types/               # TypeScript interfaces
 ```
 
 ## License

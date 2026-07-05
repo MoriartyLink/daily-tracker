@@ -1,0 +1,19 @@
+appId: com.dailytracker.app
+productName: Daily Tracker
+icon: public/icon.png
+
+linux:
+  target:
+    - AppImage
+    - deb
+  category: Office
+  syncDesktopName: true
+
+mac:
+  target:
+    - dmg
+  category: public.app-category.productivity
+
+win:
+  target:
+    - nsis

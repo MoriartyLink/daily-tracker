@@ -1,31 +1,29 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
-import type { DailyEntry, UserProfile, Project } from "@/types";
+import type { DailyEntry, UserProfile, Project, Meeting, Person, BacklogItem } from "@/types";
 import "@/types/electron";
 
-// ── Types ──
 interface DataContextType {
-  // Entries
   entries: Record<string, DailyEntry>;
   updateEntry: (date: string, entry: DailyEntry) => void;
-  // Profile
   profile: UserProfile;
   updateProfile: (profile: UserProfile) => void;
-  // Projects
   projects: Project[];
   setProjects: (fn: Project[] | ((prev: Project[]) => Project[])) => void;
-  // Status
+  meetings: Meeting[];
+  setMeetings: (fn: Meeting[] | ((prev: Meeting[]) => Meeting[])) => void;
+  people: Person[];
+  setPeople: (fn: Person[] | ((prev: Person[]) => Person[])) => void;
+  backlogItems: BacklogItem[];
+  setBacklogItems: (fn: BacklogItem[] | ((prev: BacklogItem[]) => BacklogItem[])) => void;
   loading: boolean;
-  // Vault
   vaultPath: string;
   changeVault: () => Promise<void>;
   openVault: () => void;
-  // Backup
   exportBackup: () => Promise<boolean>;
   importBackup: () => Promise<boolean>;
 }
 
 const defaultProfile: UserProfile = { name: "", email: "", avatar: "", goals: [], facts: [] };
-
 const DataContext = createContext<DataContextType | null>(null);
 
 export function useData(): DataContextType {
@@ -34,27 +32,26 @@ export function useData(): DataContextType {
   return ctx;
 }
 
-// ── Check if running in Electron ──
 function isElectron(): boolean {
   return typeof window !== "undefined" && !!window.electronAPI;
 }
 
-// ── localStorage helpers (fallback for browser dev) ──
 function lsGet<T>(key: string, fallback: T): T {
   try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
   catch { return fallback; }
 }
 function lsSet(key: string, value: unknown) { localStorage.setItem(key, JSON.stringify(value)); }
 
-// ── Provider ──
 export function DataProvider({ children }: { children: ReactNode }) {
   const [entries, setEntries] = useState<Record<string, DailyEntry>>({});
   const [profile, setProfile] = useState<UserProfile>(defaultProfile);
   const [projects, setProjectsState] = useState<Project[]>([]);
+  const [meetings, setMeetingsState] = useState<Meeting[]>([]);
+  const [people, setPeopleState] = useState<Person[]>([]);
+  const [backlogItems, setBacklogItemsState] = useState<BacklogItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [vaultPath, setVaultPath] = useState("");
 
-  // Load all data (used on mount and on vault:changed events)
   const loadAllData = useCallback(async () => {
     if (isElectron()) {
       try {
@@ -69,35 +66,32 @@ export function DataProvider({ children }: { children: ReactNode }) {
         setProfile(loadedProfile || defaultProfile);
         setProjectsState(loadedProjects || []);
         setVaultPath(path || "");
+        setMeetingsState(lsGet("daily-tracker-meetings", []));
+        setPeopleState(lsGet("daily-tracker-people", []));
+        setBacklogItemsState(lsGet("daily-tracker-backlog", []));
       } catch (err) {
         console.error("Failed to load data from vault:", err);
       }
     } else {
-      // Fallback to localStorage for browser dev
       setEntries(lsGet("daily-tracker-entries", {}));
       setProfile(lsGet("daily-tracker-profile", defaultProfile));
       setProjectsState(lsGet("daily-tracker-projects", []));
+      setMeetingsState(lsGet("daily-tracker-meetings", []));
+      setPeopleState(lsGet("daily-tracker-people", []));
+      setBacklogItemsState(lsGet("daily-tracker-backlog", []));
       setVaultPath("localStorage (browser mode)");
     }
     setLoading(false);
   }, []);
 
-  // Load data on mount
-  useEffect(() => {
-    loadAllData();
-  }, [loadAllData]);
+  useEffect(() => { loadAllData(); }, [loadAllData]);
 
-  // Listen for vault changes (file watcher) — reload all data
   useEffect(() => {
     if (!isElectron()) return;
-    const cleanup = window.electronAPI!.onVaultChanged(() => {
-      console.log("Vault changed externally, reloading...");
-      loadAllData();
-    });
+    const cleanup = window.electronAPI!.onVaultChanged(() => { loadAllData(); });
     return cleanup;
   }, [loadAllData]);
 
-  // ── Entry upsert ──
   const updateEntry = useCallback((date: string, entry: DailyEntry) => {
     setEntries((prev) => {
       const next = { ...prev, [date]: entry };
@@ -112,7 +106,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  // ── Profile update ──
   const updateProfileFn = useCallback((p: UserProfile) => {
     setProfile(p);
     if (isElectron()) {
@@ -124,37 +117,51 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // ── Projects update ──
   const setProjects = useCallback((fn: Project[] | ((prev: Project[]) => Project[])) => {
     setProjectsState((prev) => {
       const next = typeof fn === "function" ? fn(prev) : fn;
-
       if (isElectron()) {
         const api = window.electronAPI!;
-        // Delete removed projects
         const nextIds = new Set(next.map((p) => p.id));
         for (const p of prev) {
           if (!nextIds.has(p.id)) {
-            api.deleteProject(p.id).catch((err: unknown) =>
-              console.error("Failed to delete project:", err)
-            );
+            api.deleteProject(p.id).catch((err: unknown) => console.error("Failed to delete project:", err));
           }
         }
-        // Save all current projects
         for (const project of next) {
-          api.saveProject(project).catch((err: unknown) =>
-            console.error("Failed to save project:", err)
-          );
+          api.saveProject(project).catch((err: unknown) => console.error("Failed to save project:", err));
         }
       } else {
         lsSet("daily-tracker-projects", next);
       }
-
       return next;
     });
   }, []);
 
-  // ── Vault management ──
+  const setMeetings = useCallback((fn: Meeting[] | ((prev: Meeting[]) => Meeting[])) => {
+    setMeetingsState((prev) => {
+      const next = typeof fn === "function" ? fn(prev) : fn;
+      lsSet("daily-tracker-meetings", next);
+      return next;
+    });
+  }, []);
+
+  const setPeople = useCallback((fn: Person[] | ((prev: Person[]) => Person[])) => {
+    setPeopleState((prev) => {
+      const next = typeof fn === "function" ? fn(prev) : fn;
+      lsSet("daily-tracker-people", next);
+      return next;
+    });
+  }, []);
+
+  const setBacklogItems = useCallback((fn: BacklogItem[] | ((prev: BacklogItem[]) => BacklogItem[])) => {
+    setBacklogItemsState((prev) => {
+      const next = typeof fn === "function" ? fn(prev) : fn;
+      lsSet("daily-tracker-backlog", next);
+      return next;
+    });
+  }, []);
+
   const changeVault = useCallback(async () => {
     if (!isElectron()) return;
     const newPath = await window.electronAPI!.changeVaultPath();
@@ -166,12 +173,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [loadAllData]);
 
   const openVault = useCallback(() => {
-    if (isElectron()) {
-      window.electronAPI!.openVaultInExplorer();
-    }
+    if (isElectron()) { window.electronAPI!.openVaultInExplorer(); }
   }, []);
 
-  // ── Backup ──
   const exportBackup = useCallback(async () => {
     if (!isElectron()) return false;
     return await window.electronAPI!.exportBackup();
@@ -180,9 +184,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const importBackup = useCallback(async () => {
     if (!isElectron()) return false;
     const result = await window.electronAPI!.importBackup();
-    if (result) {
-      await loadAllData();
-    }
+    if (result) await loadAllData();
     return !!result;
   }, [loadAllData]);
 
@@ -191,6 +193,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
       entries, updateEntry,
       profile, updateProfile: updateProfileFn,
       projects, setProjects,
+      meetings, setMeetings,
+      people, setPeople,
+      backlogItems, setBacklogItems,
       loading,
       vaultPath, changeVault, openVault,
       exportBackup, importBackup,

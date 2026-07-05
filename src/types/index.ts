@@ -32,6 +32,11 @@ export interface DailyEntry {
   lessonLearned: string;
   lessonChange: string;
   excitedAbout: string;
+  // Mental reflection prompts (replacing old mental rating focus)
+  happyToday: string;       // "I am already happy with what I have today"
+  surprisedCanDo: string;   // "I am surprised to see that I can do"
+  happyIfProgress: string;  // "I will be happy if I make progress in this area"
+  notHappyToday: string;    // "I am not happy with what I have today"
 }
 
 export interface UserProfile {
@@ -57,6 +62,52 @@ export interface Goal {
   targetDate: string;
   progress: number; // 0-100
 }
+
+export interface Meeting {
+  id: string;
+  title: string;
+  date: string;       // ISO date string YYYY-MM-DD
+  time: string;       // HH:mm
+  reminder: boolean;
+  agenda: string;
+  minutes: string;
+  transcription: string;
+  participants: string[]; // person IDs
+  createdAt: string;
+}
+
+export interface Person {
+  id: string;
+  name: string;
+  relationshipStatus: string;  // e.g. "friend", "colleague", "family", "mentor", "partner"
+  wants: string;               // what they want
+  goal: string;                // their goal
+  telegramUsername: string;
+  email: string;
+  notes: string;               // how they connect with meetings, tasks, projects
+  connections: string[];       // person IDs they're connected with
+  createdAt: string;
+}
+
+export type CynefinDomain = "clear" | "complicated" | "complex" | "chaotic" | "disorder";
+
+export interface BacklogItem {
+  id: string;
+  content: string;
+  type: "note" | "followup" | "braindump";
+  cynefinDomain: CynefinDomain;
+  createdAt: string;
+  tags: string[];
+  done: boolean;
+}
+
+export const CYNFEIN_DOMAINS: { id: CynefinDomain; title: string; description: string; color: string }[] = [
+  { id: "clear", title: "Clear", description: "Known knowns — best practices, facts, repeatable", color: "#10b981" },
+  { id: "complicated", title: "Complicated", description: "Known unknowns — needs expert analysis", color: "#3b82f6" },
+  { id: "complex", title: "Complex", description: "Unknown unknowns — probe-sense-respond", color: "#f59e0b" },
+  { id: "chaotic", title: "Chaotic", description: "Unknowables — act-sense-respond", color: "#ef4444" },
+  { id: "disorder", title: "Disorder", description: "Not yet classified — needs exploration", color: "#8b5cf6" },
+];
 
 export type TimeRange = "weekly" | "monthly";
 

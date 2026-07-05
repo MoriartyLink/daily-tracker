@@ -26,9 +26,11 @@ function getDatesInRange(start: Date, end: Date): string[] {
 }
 
 function getWeekRange(): { start: Date; end: Date } {
-  const now = new Date(); const day = now.getDay();
-  const start = new Date(now); start.setDate(now.getDate() - day);
-  const end = new Date(start); end.setDate(start.getDate() + 6);
+  // Rolling 7-day window (last 7 days including today)
+  const now = new Date();
+  const end = new Date(now);
+  const start = new Date(now);
+  start.setDate(now.getDate() - 6);
   return { start, end };
 }
 
@@ -70,7 +72,7 @@ const ChartTooltip = ({ active, payload, label }: { active?: boolean; payload?: 
 function generateInsightsMd(
   mode: string,
   label: string,
-  chartData: Array<{ date: string; label: string; tasksCompleted: number; mentalAvg: number; physical: number }>,
+  chartData: Array<{ date: string; label: string; tasksCompleted: number; reflectionDepth: number; physical: number }>,
   outcomes: OutcomeItem[],
   stats: { totalTasks: number; avgMental: string; healthyDays: number; totalDays: number }
 ): string {
@@ -87,11 +89,11 @@ function generateInsightsMd(
   lines.push("");
   lines.push("## Daily Breakdown");
   lines.push("");
-  lines.push(`| Date | Tasks | Mental | Physical |`);
+  lines.push(`| Date | Tasks | Reflection | Physical |`);
   lines.push(`|------|-------|--------|----------|`);
   for (const d of chartData) {
     const phys = d.physical === 3 ? "Good" : d.physical === 2 ? "Sick" : d.physical === 1 ? "Critical" : "—";
-    lines.push(`| ${d.label} | ${d.tasksCompleted} | ${d.mentalAvg > 0 ? d.mentalAvg.toFixed(1) : "—"} | ${phys} |`);
+    lines.push(`| ${d.label} | ${d.tasksCompleted} | ${d.reflectionDepth > 0 ? d.reflectionDepth.toFixed(1) : "—"} | ${phys} |`);
   }
   lines.push("");
   if (outcomes.length > 0) {
@@ -146,25 +148,26 @@ export function InsightsPage() {
     const range = mode === "weekly" ? getWeekRange() : getMonthRange(currentMonthKey);
     const dates = getDatesInRange(range.start, range.end);
     const today = new Date().toISOString().split("T")[0];
-    const chart: Array<{ date: string; label: string; tasksCompleted: number; totalTasks: number; mentalAvg: number; physical: number; isFuture: boolean; hasData: boolean }> = [];
+    const chart: Array<{ date: string; label: string; tasksCompleted: number; totalTasks: number; reflectionDepth: number; physical: number; isFuture: boolean; hasData: boolean }> = [];
     const outs: OutcomeItem[] = [];
 
     for (const dateStr of dates) {
       const entry = entries[dateStr];
-      const mentalStatus = entry?.mentalStatus;
-      const mentalAvg = mentalStatus ? (mentalStatus.morning + mentalStatus.afternoon + mentalStatus.night) / 3 : 0;
+      // Reflection depth: count how many of the 4 reflection fields have content (0-4)
+      const reflectionFields = [entry?.happyToday, entry?.surprisedCanDo, entry?.happyIfProgress, entry?.notHappyToday];
+      const reflectionDepth = reflectionFields.filter((f) => (f || "").trim().length > 0).length;
       const physVal = entry?.physicalStatus === "good" ? 3 : entry?.physicalStatus === "sick" ? 2 : entry?.physicalStatus === "critical" ? 1 : 0;
       const tasks = entry?.tasks || [];
       const completed = tasks.filter((t) => t.completed).length;
       const isFuture = dateStr > today;
-      const hasData = entry && (tasks.length > 0 || (entry.mentalNote || "").trim() !== "" || (entry.physicalNote || "").trim() !== "" || (entry.journal || "").trim() !== "" || (mentalStatus?.morning ?? 2) !== 2 || (mentalStatus?.afternoon ?? 2) !== 2 || (mentalStatus?.night ?? 2) !== 2 || (entry?.physicalStatus || "good") !== "good");
+      const hasData = !!entry;
       
       chart.push({ 
         date: dateStr, 
         label: getShortDate(dateStr), 
         tasksCompleted: completed, 
         totalTasks: tasks.length, 
-        mentalAvg: Math.round(mentalAvg * 10) / 10, 
+        reflectionDepth, 
         physical: physVal,
         isFuture,
         hasData
@@ -181,9 +184,9 @@ export function InsightsPage() {
 
     // Filter out dates with no data AND future dates for cleaner visualization
     const chartWithData = chart.filter((d) => d.hasData && !d.isFuture);
-    const daysWithData = chartWithData.filter((d) => d.mentalAvg > 0);
+    const daysWithData = chartWithData.filter((d) => d.reflectionDepth > 0);
     const totalTasks = chartWithData.reduce((s, d) => s + d.tasksCompleted, 0);
-    const avgMental = daysWithData.length > 0 ? (daysWithData.reduce((s, d) => s + d.mentalAvg, 0) / daysWithData.length).toFixed(1) : "0";
+    const avgMental = daysWithData.length > 0 ? (daysWithData.reduce((s, d) => s + d.reflectionDepth, 0) / daysWithData.length).toFixed(1) : "0";
     const healthyDays = chartWithData.filter((d) => d.physical === 3).length;
 
     return { chartData: chartWithData, outcomes: outs, stats: { totalTasks, avgMental, healthyDays, totalDays: chartWithData.length } };
@@ -292,7 +295,7 @@ export function InsightsPage() {
         <Card className="glow-blue-subtle">
           <CardHeader><CardTitle className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-lg bg-purple-500/10 flex items-center justify-center"><Brain className="w-4 h-4 text-purple-400" /></div>
-            <span className="text-zinc-100">Mental Health Trend</span>
+            <span className="text-zinc-100">Reflection Depth Trend</span>
           </CardTitle></CardHeader>
           <CardContent><div className="chart-container">
             <ResponsiveContainer width="100%" height="100%">
@@ -300,9 +303,9 @@ export function InsightsPage() {
                 <defs><linearGradient id="mentalG" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} /><stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} /></linearGradient></defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#2a2a3e" />
                 <XAxis dataKey="label" stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
-                <YAxis domain={[0, 3]} stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} ticks={[1, 2, 3]} />
+                <YAxis domain={[0, 4]} stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} ticks={[0, 1, 2, 3, 4]} />
                 <Tooltip content={<ChartTooltip />} />
-                <Area type="monotone" dataKey="mentalAvg" name="Mental" stroke="#8b5cf6" strokeWidth={2.5} fill="url(#mentalG)" dot={{ fill: "#8b5cf6", strokeWidth: 0, r: 3 }} activeDot={{ r: 5, fill: "#8b5cf6", stroke: "#fff", strokeWidth: 2 }} />
+                <Area type="monotone" dataKey="reflectionDepth" name="Reflections" stroke="#8b5cf6" strokeWidth={2.5} fill="url(#mentalG)" dot={{ fill: "#8b5cf6", strokeWidth: 0, r: 3 }} activeDot={{ r: 5, fill: "#8b5cf6", stroke: "#fff", strokeWidth: 2 }} />
               </AreaChart>
             </ResponsiveContainer>
           </div></CardContent>
@@ -336,7 +339,7 @@ export function InsightsPage() {
           </CardContent></Card>
           <Card><CardContent className="p-5 flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center"><Brain className="w-6 h-6 text-purple-400" /></div>
-            <div><p className="text-2xl font-bold text-zinc-100">{stats.avgMental}</p><p className="text-xs text-zinc-400">Avg Mental Score</p></div>
+            <div><p className="text-2xl font-bold text-zinc-100">{stats.avgMental}</p><p className="text-xs text-zinc-400">Avg Reflection Depth</p></div>
           </CardContent></Card>
           <Card><CardContent className="p-5 flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center"><Heart className="w-6 h-6 text-emerald-400" /></div>

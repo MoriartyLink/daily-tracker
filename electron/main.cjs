@@ -6,7 +6,7 @@ const matter = require("gray-matter");
 const chokidar = require("chokidar");
 
 // ── Vault path ──
-const DEFAULT_VAULT = path.join(os.homedir(), "DailyTracker");
+const DEFAULT_VAULT = path.join(process.cwd(), "vault"); // Simple local folder for data storage
 let vaultPath = DEFAULT_VAULT;
 let watcher = null;
 
