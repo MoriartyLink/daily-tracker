@@ -1,9 +1,9 @@
 {
-  "name": "daily-tracker",
+  "name": "local-workspace",
   "private": true,
   "version": "1.0.0",
-  "description": "Local-first desktop app for daily journaling, task tracking, and project management",
-  "author": "MoriartyLink",
+  "description": "Local-first desktop workspace for journals, projects, meetings, and people management",
+  "author": "MoriartyLink <dev@dailytracker.app>",
   "license": "MIT",
   "type": "module",
   "main": "electron/main.cjs",

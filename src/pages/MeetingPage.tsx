@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from "react";
-import { Calendar, Clock, Bell, BellOff, FileText, Mic, Users, Plus, Trash2, ChevronRight, ArrowLeft, CheckCircle2, ListChecks } from "lucide-react";
+import { Calendar, Clock, Bell, BellOff, FileText, Users, Plus, Trash2, ChevronRight, ArrowLeft, CheckCircle2, ListChecks } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +18,6 @@ function createMeeting(): Meeting {
     reminder: false,
     agenda: "",
     minutes: "",
-    transcription: "",
     participants: [],
     createdAt: new Date().toISOString(),
   };
@@ -42,9 +41,10 @@ function getPersonName(people: { id: string; name: string }[], id: string): stri
   return p?.name || "Unknown";
 }
 
-function MeetingDetail({ meeting, people, onUpdate, onDelete, onBack }: {
+function MeetingDetail({ meeting, people, projects, onUpdate, onDelete, onBack }: {
   meeting: Meeting;
   people: { id: string; name: string }[];
+  projects: { id: string; title: string }[];
   onUpdate: (u: Partial<Meeting>) => void;
   onDelete: () => void;
   onBack: () => void;
@@ -126,17 +126,21 @@ function MeetingDetail({ meeting, people, onUpdate, onDelete, onBack }: {
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-sm text-zinc-100">
-                <Mic className="w-4 h-4 text-purple-400" />
-                Transcription
+                <FileText className="w-4 h-4 text-emerald-400" />
+                Related Project
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Textarea
-                placeholder="Paste meeting transcription here..."
-                value={meeting.transcription}
-                onChange={(e) => onUpdate({ transcription: e.target.value })}
-                className="min-h-[150px] text-sm bg-zinc-900 border-zinc-700 text-zinc-200 placeholder:text-zinc-600"
-              />
+              <select
+                value={meeting.relatedProjectId || ""}
+                onChange={(e) => onUpdate({ relatedProjectId: e.target.value || undefined })}
+                className="w-full bg-zinc-900 border border-zinc-700 rounded-md text-xs text-zinc-300 px-3 py-2 outline-none cursor-pointer"
+              >
+                <option value="">No project linked</option>
+                {projects.map((p) => (
+                  <option key={p.id} value={p.id}>{p.title || "Untitled"}</option>
+                ))}
+              </select>
             </CardContent>
           </Card>
         </div>
@@ -223,9 +227,10 @@ function MeetingDetail({ meeting, people, onUpdate, onDelete, onBack }: {
   );
 }
 
-function MeetingList({ meetings, people, onSelect, onAdd }: {
+function MeetingList({ meetings, people, projects, onSelect, onAdd }: {
   meetings: Meeting[];
   people: { id: string; name: string }[];
+  projects: { id: string; title: string }[];
   onSelect: (id: string) => void;
   onAdd: () => void;
 }) {
@@ -277,7 +282,7 @@ function MeetingList({ meetings, people, onSelect, onAdd }: {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {upcoming.map((m) => (
-                  <MeetingCard key={m.id} meeting={m} people={people} onSelect={() => onSelect(m.id)} />
+                  <MeetingCard key={m.id} meeting={m} people={people} projects={projects} onSelect={() => onSelect(m.id)} />
                 ))}
               </div>
             </div>
@@ -287,7 +292,7 @@ function MeetingList({ meetings, people, onSelect, onAdd }: {
               <h3 className="text-sm font-medium text-zinc-400">Past Meetings ({past.length})</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {past.map((m) => (
-                  <MeetingCard key={m.id} meeting={m} people={people} onSelect={() => onSelect(m.id)} />
+                  <MeetingCard key={m.id} meeting={m} people={people} projects={projects} onSelect={() => onSelect(m.id)} />
                 ))}
               </div>
             </div>
@@ -298,12 +303,14 @@ function MeetingList({ meetings, people, onSelect, onAdd }: {
   );
 }
 
-function MeetingCard({ meeting, people, onSelect }: {
+function MeetingCard({ meeting, people, projects, onSelect }: {
   meeting: Meeting;
   people: { id: string; name: string }[];
+  projects: { id: string; title: string }[];
   onSelect: () => void;
 }) {
   const upcoming = isUpcoming(meeting.date, meeting.time);
+  const relatedProject = meeting.relatedProjectId ? projects.find(p => p.id === meeting.relatedProjectId) : null;
   return (
     <Card className="group cursor-pointer hover:border-zinc-700 hover:shadow-md transition-all duration-300" onClick={onSelect}>
       <CardContent className="p-4 space-y-3">
@@ -327,6 +334,11 @@ function MeetingCard({ meeting, people, onSelect }: {
           <ChevronRight className="w-4 h-4 text-zinc-500 group-hover:text-zinc-300 transition-colors shrink-0 ml-2" />
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          {relatedProject && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center gap-1">
+              <FileText className="w-2.5 h-2.5" />{relatedProject.title}
+            </span>
+          )}
           {upcoming && (
             <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center gap-1">
               <div className="w-1 h-1 rounded-full bg-emerald-500" />Upcoming
@@ -364,7 +376,7 @@ function MeetingCard({ meeting, people, onSelect }: {
 }
 
 export function MeetingPage() {
-  const { meetings, setMeetings, people } = useData();
+  const { meetings, setMeetings, people, projects } = useData();
   const [selectedId, setSelectedId] = useLocalStorage<string | null>("meeting-selected", null);
   const selected = meetings.find((m) => m.id === selectedId) || null;
 
@@ -388,11 +400,12 @@ export function MeetingPage() {
       <MeetingDetail
         meeting={selected}
         people={people}
+        projects={projects}
         onUpdate={(u) => updateMeeting(selected.id, u)}
         onDelete={() => deleteMeeting(selected.id)}
         onBack={() => setSelectedId(null)}
       />
     );
   }
-  return <MeetingList meetings={meetings} people={people} onSelect={setSelectedId} onAdd={addMeeting} />;
+  return <MeetingList meetings={meetings} people={people} projects={projects} onSelect={setSelectedId} onAdd={addMeeting} />;
 }

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, FileText, FolderKanban, User, ArrowRight } from "lucide-react";
+import { Search, FileText, FolderKanban, Calendar, Users, ArrowRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -79,8 +79,10 @@ export function SearchPage() {
         return <FileText className="w-4 h-4 text-blue-400" />;
       case "project":
         return <FolderKanban className="w-4 h-4 text-emerald-400" />;
-      case "profile":
-        return <User className="w-4 h-4 text-purple-400" />;
+      case "meeting":
+        return <Calendar className="w-4 h-4 text-amber-400" />;
+      case "person":
+        return <Users className="w-4 h-4 text-purple-400" />;
     }
   };
 
@@ -103,7 +105,7 @@ export function SearchPage() {
         <CardContent className="space-y-4">
           <div className="flex gap-2">
             <Input
-              placeholder="Search journals, projects, profile..."
+              placeholder="Search journals, projects, meetings, people..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyPress={handleKeyPress}
@@ -159,7 +161,7 @@ export function SearchPage() {
             <div className="text-center py-8">
               <Search className="w-12 h-12 text-zinc-600 mx-auto mb-3" />
               <p className="text-sm text-zinc-400">Enter at least 2 characters to search</p>
-              <p className="text-xs text-zinc-500 mt-1">Search across journals, projects, and profile</p>
+              <p className="text-xs text-zinc-500 mt-1">Search across journals, projects, meetings, and people</p>
             </div>
           )}
         </CardContent>

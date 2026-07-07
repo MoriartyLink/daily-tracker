@@ -1,20 +1,16 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
-import type { DailyEntry, UserProfile, Project, Meeting, Person, BacklogItem } from "@/types";
+import type { DailyEntry, Project, Meeting, Person } from "@/types";
 import "@/types/electron";
 
 interface DataContextType {
   entries: Record<string, DailyEntry>;
   updateEntry: (date: string, entry: DailyEntry) => void;
-  profile: UserProfile;
-  updateProfile: (profile: UserProfile) => void;
   projects: Project[];
   setProjects: (fn: Project[] | ((prev: Project[]) => Project[])) => void;
   meetings: Meeting[];
   setMeetings: (fn: Meeting[] | ((prev: Meeting[]) => Meeting[])) => void;
   people: Person[];
   setPeople: (fn: Person[] | ((prev: Person[]) => Person[])) => void;
-  backlogItems: BacklogItem[];
-  setBacklogItems: (fn: BacklogItem[] | ((prev: BacklogItem[]) => BacklogItem[])) => void;
   loading: boolean;
   vaultPath: string;
   changeVault: () => Promise<void>;
@@ -23,7 +19,6 @@ interface DataContextType {
   importBackup: () => Promise<boolean>;
 }
 
-const defaultProfile: UserProfile = { name: "", email: "", avatar: "", goals: [], facts: [] };
 const DataContext = createContext<DataContextType | null>(null);
 
 export function useData(): DataContextType {
@@ -44,11 +39,9 @@ function lsSet(key: string, value: unknown) { localStorage.setItem(key, JSON.str
 
 export function DataProvider({ children }: { children: ReactNode }) {
   const [entries, setEntries] = useState<Record<string, DailyEntry>>({});
-  const [profile, setProfile] = useState<UserProfile>(defaultProfile);
   const [projects, setProjectsState] = useState<Project[]>([]);
   const [meetings, setMeetingsState] = useState<Meeting[]>([]);
   const [people, setPeopleState] = useState<Person[]>([]);
-  const [backlogItems, setBacklogItemsState] = useState<BacklogItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [vaultPath, setVaultPath] = useState("");
 
@@ -56,32 +49,26 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (isElectron()) {
       try {
         const api = window.electronAPI!;
-        const [loadedEntries, loadedProfile, loadedProjects, loadedMeetings, loadedPeople, loadedBacklog, path] = await Promise.all([
+        const [loadedEntries, loadedProjects, loadedMeetings, loadedPeople, path] = await Promise.all([
           api.loadAllEntries(),
-          api.loadProfile(),
           api.loadAllProjects(),
           api.loadAllMeetings(),
           api.loadAllPeople(),
-          api.loadAllBacklogItems(),
           api.getVaultPath(),
         ]);
         setEntries(loadedEntries || {});
-        setProfile(loadedProfile || defaultProfile);
         setProjectsState(loadedProjects || []);
         setVaultPath(path || "");
         setMeetingsState(loadedMeetings || []);
         setPeopleState(loadedPeople || []);
-        setBacklogItemsState(loadedBacklog || []);
       } catch (err) {
         console.error("Failed to load data from vault:", err);
       }
     } else {
-      setEntries(lsGet("daily-tracker-entries", {}));
-      setProfile(lsGet("daily-tracker-profile", defaultProfile));
-      setProjectsState(lsGet("daily-tracker-projects", []));
-      setMeetingsState(lsGet("daily-tracker-meetings", []));
-      setPeopleState(lsGet("daily-tracker-people", []));
-      setBacklogItemsState(lsGet("daily-tracker-backlog", []));
+      setEntries(lsGet("local-workspace-entries", {}));
+      setProjectsState(lsGet("local-workspace-projects", []));
+      setMeetingsState(lsGet("local-workspace-meetings", []));
+      setPeopleState(lsGet("local-workspace-people", []));
       setVaultPath("localStorage (browser mode)");
     }
     setLoading(false);
@@ -103,21 +90,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
           console.error("Failed to save entry:", err)
         );
       } else {
-        lsSet("daily-tracker-entries", next);
+        lsSet("local-workspace-entries", next);
       }
       return next;
     });
-  }, []);
-
-  const updateProfileFn = useCallback((p: UserProfile) => {
-    setProfile(p);
-    if (isElectron()) {
-      window.electronAPI!.saveProfile(p).catch((err: unknown) =>
-        console.error("Failed to save profile:", err)
-      );
-    } else {
-      lsSet("daily-tracker-profile", p);
-    }
   }, []);
 
   const setProjects = useCallback((fn: Project[] | ((prev: Project[]) => Project[])) => {
@@ -125,17 +101,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const next = typeof fn === "function" ? fn(prev) : fn;
       if (isElectron()) {
         const api = window.electronAPI!;
-        const nextIds = new Set(next.map((p) => p.id));
+        const nextIds = new Set(next.map(p => p.id));
         for (const p of prev) {
           if (!nextIds.has(p.id)) {
             api.deleteProject(p.id).catch((err: unknown) => console.error("Failed to delete project:", err));
           }
         }
-        for (const project of next) {
-          api.saveProject(project).catch((err: unknown) => console.error("Failed to save project:", err));
+        for (const p of next) {
+          api.saveProject(p).catch((err: unknown) => console.error("Failed to save project:", err));
         }
       } else {
-        lsSet("daily-tracker-projects", next);
+        lsSet("local-workspace-projects", next);
       }
       return next;
     });
@@ -156,7 +132,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           api.saveMeeting(m).catch((err: unknown) => console.error("Failed to save meeting:", err));
         }
       } else {
-        lsSet("daily-tracker-meetings", next);
+        lsSet("local-workspace-meetings", next);
       }
       return next;
     });
@@ -177,28 +153,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           api.savePerson(p).catch((err: unknown) => console.error("Failed to save person:", err));
         }
       } else {
-        lsSet("daily-tracker-people", next);
-      }
-      return next;
-    });
-  }, []);
-
-  const setBacklogItems = useCallback((fn: BacklogItem[] | ((prev: BacklogItem[]) => BacklogItem[])) => {
-    setBacklogItemsState((prev) => {
-      const next = typeof fn === "function" ? fn(prev) : fn;
-      if (isElectron()) {
-        const api = window.electronAPI!;
-        const nextIds = new Set(next.map(i => i.id));
-        for (const i of prev) {
-          if (!nextIds.has(i.id)) {
-            api.deleteBacklogItem(i.id).catch((err: unknown) => console.error("Failed to delete backlog item:", err));
-          }
-        }
-        for (const i of next) {
-          api.saveBacklogItem(i).catch((err: unknown) => console.error("Failed to save backlog item:", err));
-        }
-      } else {
-        lsSet("daily-tracker-backlog", next);
+        lsSet("local-workspace-people", next);
       }
       return next;
     });
@@ -233,11 +188,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
   return (
     <DataContext.Provider value={{
       entries, updateEntry,
-      profile, updateProfile: updateProfileFn,
       projects, setProjects,
       meetings, setMeetings,
       people, setPeople,
-      backlogItems, setBacklogItems,
       loading,
       vaultPath, changeVault, openVault,
       exportBackup, importBackup,

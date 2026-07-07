@@ -4,13 +4,11 @@ import { DataProvider } from "@/contexts/DataContext";
 import { SidebarProvider, useSidebar } from "@/contexts/SidebarContext";
 import { Sidebar } from "@/components/Sidebar";
 import { JournalPage } from "@/pages/JournalPage";
-import { InsightsPage } from "@/pages/InsightsPage";
+import { HistoryPage } from "@/pages/HistoryPage";
 import { ProjectPage } from "@/pages/ProjectPage";
-import { ProfilePage } from "@/pages/ProfilePage";
 import { SearchPage } from "@/pages/SearchPage";
 import { MeetingPage } from "@/pages/MeetingPage";
 import { PeoplePage } from "@/pages/PeoplePage";
-import { BacklogPage } from "@/pages/BacklogPage";
 import "@/types/electron";
 
 function MenuListener() {
@@ -53,12 +51,10 @@ function App() {
           <Routes>
             <Route path="/" element={<AppLayout><JournalPage /></AppLayout>} />
             <Route path="/projects" element={<AppLayout><ProjectPage /></AppLayout>} />
-            <Route path="/insights" element={<AppLayout><InsightsPage /></AppLayout>} />
-            <Route path="/profile" element={<AppLayout><ProfilePage /></AppLayout>} />
+            <Route path="/history" element={<AppLayout><HistoryPage /></AppLayout>} />
             <Route path="/search" element={<AppLayout><SearchPage /></AppLayout>} />
             <Route path="/meeting" element={<AppLayout><MeetingPage /></AppLayout>} />
             <Route path="/people" element={<AppLayout><PeoplePage /></AppLayout>} />
-            <Route path="/backlog" element={<AppLayout><BacklogPage /></AppLayout>} />
           </Routes>
         </SidebarProvider>
       </DataProvider>

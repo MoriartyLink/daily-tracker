@@ -2,6 +2,14 @@ appId: com.dailytracker.app
 productName: Daily Tracker
 icon: public/icon.png
 
+# Explicitly include the built web bundle (dist/) and electron main process.
+# Without this, electron-builder skips `dist/` because it is listed in .gitignore,
+# resulting in a blank/black window (renderer has no index.html to load).
+files:
+  - dist
+  - electron
+  - package.json
+
 linux:
   target:
     - AppImage

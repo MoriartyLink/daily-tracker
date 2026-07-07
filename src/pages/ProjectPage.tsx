@@ -13,14 +13,14 @@ import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { useData } from "@/contexts/DataContext";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
-import type { Project, KanbanCard, Milestone, KanbanColumnId } from "@/types";
+import type { Project, KanbanCard, Milestone, KanbanColumnId, Person, HistoryEntry } from "@/types";
 import { KANBAN_COLUMNS, PROJECT_COLORS } from "@/types";
 
 function createProject(title = "", description = ""): Project {
-  return { id: crypto.randomUUID(), title, description, color: PROJECT_COLORS[Math.floor(Math.random() * PROJECT_COLORS.length)], milestones: [], cards: [], createdAt: new Date().toISOString(), archived: false };
+  return { id: crypto.randomUUID(), title, description, color: PROJECT_COLORS[Math.floor(Math.random() * PROJECT_COLORS.length)], milestones: [], cards: [], history: [], createdAt: new Date().toISOString(), archived: false };
 }
 function createCard(columnId: KanbanColumnId, order: number): KanbanCard {
-  return { id: crypto.randomUUID(), title: "", description: "", columnId, priority: "medium", tags: [], dueDate: "", createdAt: new Date().toISOString(), completedAt: "", order };
+  return { id: crypto.randomUUID(), title: "", description: "", columnId, priority: "medium", tags: [], dueDate: "", createdAt: new Date().toISOString(), completedAt: "", order, assignedTo: [], relatedMeetingId: "" };
 }
 function createMilestone(): Milestone {
   return { id: crypto.randomUUID(), title: "", description: "", targetDate: "", completed: false, completedAt: "" };
@@ -36,14 +36,16 @@ const PRIORITY_CONFIG = {
 
 
 // ── Kanban Card ──
-function KanbanCardItem({ card, onUpdate, onDelete, onMove, onDragStart, onDragEnd }: {
-  card: KanbanCard; onUpdate: (u: Partial<KanbanCard>) => void; onDelete: () => void; onMove: (to: KanbanColumnId) => void; onDragStart?: (e: React.DragEvent, id: string) => void; onDragEnd?: () => void;
+function KanbanCardItem({ card, onUpdate, onDelete, onMove, onDragStart, onDragEnd, people }: {
+  card: KanbanCard; onUpdate: (u: Partial<KanbanCard>) => void; onDelete: () => void; onMove: (to: KanbanColumnId) => void; onDragStart?: (e: React.DragEvent, id: string) => void; onDragEnd?: () => void; people: Person[];
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [showPersonPicker, setShowPersonPicker] = useState(false);
   const pri = PRIORITY_CONFIG[card.priority];
   const nextCol = KANBAN_COLUMNS.findIndex((c) => c.id === card.columnId);
   const nextColumn = nextCol < KANBAN_COLUMNS.length - 1 ? KANBAN_COLUMNS[nextCol + 1] : null;
   const titleRef = useRef<HTMLTextAreaElement>(null);
+  const pickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const el = titleRef.current;
@@ -52,6 +54,25 @@ function KanbanCardItem({ card, onUpdate, onDelete, onMove, onDragStart, onDragE
       el.style.height = el.scrollHeight + "px";
     }
   }, [card.title]);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+        setShowPersonPicker(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const togglePerson = (personId: string) => {
+    const assigned = card.assignedTo.includes(personId)
+      ? card.assignedTo.filter((id) => id !== personId)
+      : [...card.assignedTo, personId];
+    onUpdate({ assignedTo: assigned });
+  };
+
+  const getPersonName = (id: string) => people.find((p) => p.id === id)?.name || "Unknown";
 
   return (
     <div draggable={true} onDragStart={(e) => onDragStart?.(e, card.id)} onDragEnd={() => onDragEnd?.()} className="bg-zinc-950 rounded-lg border border-zinc-800 hover:border-zinc-700 shadow-sm transition-all duration-200 group cursor-grab active:cursor-grabbing break-words">
@@ -80,6 +101,34 @@ function KanbanCardItem({ card, onUpdate, onDelete, onMove, onDragStart, onDragE
             <div><label className="text-[10px] text-zinc-400 block mb-1">Due Date</label>
               <input type="date" className="w-full max-w-full bg-zinc-900 border border-zinc-700 rounded-md text-xs text-zinc-300 p-1.5 outline-none" value={card.dueDate} onChange={(e) => onUpdate({ dueDate: e.target.value })} /></div>
           </div>
+          {/* Person Assignment */}
+          <div className="relative" ref={pickerRef}>
+            <label className="text-[10px] text-zinc-400 block mb-1">Assigned To</label>
+            <button
+              onClick={() => setShowPersonPicker(!showPersonPicker)}
+              className="w-full text-left bg-zinc-900 border border-zinc-700 rounded-md text-xs text-zinc-300 p-1.5 outline-none cursor-pointer hover:border-zinc-500 transition-colors"
+            >
+              {card.assignedTo.length === 0
+                ? <span className="text-zinc-500">Assign people...</span>
+                : <span className="flex flex-wrap gap-1">{card.assignedTo.map((id) => (
+                    <span key={id} className="inline-flex items-center gap-1 bg-blue-500/15 text-blue-300 px-1.5 py-0.5 rounded text-[10px]">
+                      {getPersonName(id)}
+                    </span>
+                  ))}</span>
+              }
+            </button>
+            {showPersonPicker && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl z-20 max-h-40 overflow-y-auto">
+                {people.length === 0 && <p className="text-[10px] text-zinc-500 text-center py-3">No people added yet.</p>}
+                {people.map((p) => (
+                  <label key={p.id} className="flex items-center gap-2 px-2.5 py-1.5 hover:bg-zinc-800 cursor-pointer text-xs text-zinc-300 transition-colors">
+                    <input type="checkbox" checked={card.assignedTo.includes(p.id)} onChange={() => togglePerson(p.id)} className="accent-blue-500" />
+                    {p.name}
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
           <div className="flex justify-between items-center pt-1">
             <select className="bg-zinc-900 border border-zinc-700 rounded-md text-xs text-zinc-300 p-1 outline-none cursor-pointer" value={card.columnId} onChange={(e) => onMove(e.target.value as KanbanColumnId)}>
               {KANBAN_COLUMNS.map((col) => <option key={col.id} value={col.id}>{col.title}</option>)}
@@ -94,6 +143,7 @@ function KanbanCardItem({ card, onUpdate, onDelete, onMove, onDragStart, onDragE
 
 // ── Project Detail ──
 function ProjectDetail({ project, onUpdate, onBack }: { project: Project; onUpdate: (u: Partial<Project>) => void; onBack: () => void }) {
+  const { people } = useData();
   const [showMilestones, setShowMilestones] = useState(true);
   const [editingInfo, setEditingInfo] = useState(!project.title);
   const dragCardId = useRef<string | null>(null);
@@ -117,6 +167,33 @@ function ProjectDetail({ project, onUpdate, onBack }: { project: Project; onUpda
   const done = project.cards.filter((c) => c.columnId === "done").length;
   const total = project.cards.length;
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  const history = project.history || [];
+
+  // ── 24hr history move: cards in "done" older than 24hr go to project history ──
+  useEffect(() => {
+    const now = Date.now();
+    const twentyFourHours = 24 * 60 * 60 * 1000;
+    const agedCards = project.cards.filter((c) => {
+      if (c.columnId !== "done" || !c.completedAt) return false;
+      return now - new Date(c.completedAt).getTime() >= twentyFourHours;
+    });
+    if (agedCards.length === 0) return;
+    const historyEntries: HistoryEntry[] = agedCards.map((c) => ({
+      id: crypto.randomUUID(),
+      title: c.title,
+      type: "task" as const,
+      completedAt: c.completedAt,
+      projectId: project.id,
+      projectTitle: project.title,
+      date: c.completedAt.split("T")[0],
+      outcome: c.description,
+    }));
+    const agedIds = new Set(agedCards.map((c) => c.id));
+    onUpdate({
+      cards: project.cards.filter((c) => !agedIds.has(c.id)),
+      history: [...history, ...historyEntries],
+    });
+  }, [project.cards, project.history, project.id, project.title, onUpdate]);
 
   return (
     <div className="fade-in space-y-5">
@@ -195,7 +272,7 @@ function ProjectDetail({ project, onUpdate, onBack }: { project: Project; onUpda
                   onDrop={(e) => handleDrop(e, col.id)}
                   className={`space-y-2 min-h-[100px] p-2 rounded-xl bg-zinc-950 border transition-all duration-200 ${isOver ? "border-blue-500/60 bg-blue-500/5 shadow-[0_0_15px_rgba(59,130,246,0.12)]" : "border-zinc-800"}`}
                 >
-                  {colCards.map((card) => <KanbanCardItem key={card.id} card={card} onUpdate={(u) => updateCard(card.id, u)} onDelete={() => deleteCard(card.id)} onMove={(to) => moveCard(card.id, to)} onDragStart={handleDragStart} onDragEnd={handleDragEnd} />)}
+                  {colCards.map((card) => <KanbanCardItem key={card.id} card={card} onUpdate={(u) => updateCard(card.id, u)} onDelete={() => deleteCard(card.id)} onMove={(to) => moveCard(card.id, to)} onDragStart={handleDragStart} onDragEnd={handleDragEnd} people={people} />)}
                   {colCards.length === 0 && <div className={`flex items-center justify-center h-16 text-[10px] ${isOver ? "text-blue-400" : "text-zinc-500"}`}>
                     {isOver ? <span className="flex items-center gap-1">Drop here</span> : <button onClick={() => addCard(col.id)} className="cursor-pointer hover:text-zinc-300 transition-colors flex items-center gap-1"><Plus className="w-3 h-3" />Add card</button>}
                   </div>}
@@ -204,6 +281,32 @@ function ProjectDetail({ project, onUpdate, onBack }: { project: Project; onUpda
             );
           })}
         </div>
+      </div>
+
+      {/* History */}
+      <div>
+        <div className="flex items-center gap-2.5 mb-4">
+          <div className="w-7 h-7 rounded-lg bg-purple-500/15 flex items-center justify-center"><Archive className="w-4 h-4 text-purple-400" /></div>
+          <h3 className="text-base font-semibold text-zinc-100">History</h3>
+          <span className="text-[10px] bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded-md font-mono">{history.length}</span>
+        </div>
+        {history.length === 0 ? (
+          <p className="text-xs text-zinc-500 text-center py-6 bg-zinc-950 rounded-xl border border-zinc-800">Cards moved to history after 24 hours in "Done".</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+            {[...project.history].reverse().map((entry) => (
+              <Card key={entry.id} className="border-zinc-800 bg-zinc-950/50">
+                <CardContent className="p-3 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-medium text-zinc-300 truncate">{entry.title}</h4>
+                    <span className="text-[10px] text-zinc-500 shrink-0">{new Date(entry.completedAt).toLocaleDateString()}</span>
+                  </div>
+                  {entry.outcome && <p className="text-[10px] text-zinc-500 line-clamp-2">{entry.outcome}</p>}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -10,10 +10,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
   loadAllEntries: () => ipcRenderer.invoke("entries:loadAll"),
   saveEntry: (date, entry) => ipcRenderer.invoke("entries:save", date, entry),
 
-  // Profile
-  loadProfile: () => ipcRenderer.invoke("profile:load"),
-  saveProfile: (profile) => ipcRenderer.invoke("profile:save", profile),
-
   // Projects
   loadAllProjects: () => ipcRenderer.invoke("projects:loadAll"),
   saveProject: (project) => ipcRenderer.invoke("projects:save", project),
@@ -28,11 +24,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
   loadAllPeople: () => ipcRenderer.invoke("people:loadAll"),
   savePerson: (person) => ipcRenderer.invoke("people:save", person),
   deletePerson: (personId) => ipcRenderer.invoke("people:delete", personId),
-
-  // Backlog
-  loadAllBacklogItems: () => ipcRenderer.invoke("backlog:loadAll"),
-  saveBacklogItem: (item) => ipcRenderer.invoke("backlog:save", item),
-  deleteBacklogItem: (itemId) => ipcRenderer.invoke("backlog:delete", itemId),
 
   // Search
   searchVault: (query) => ipcRenderer.invoke("vault:search", query),

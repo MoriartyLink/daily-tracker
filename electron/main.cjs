@@ -42,7 +42,6 @@ function ensureVault() {
     path.join(vaultPath, "projects"),
     path.join(vaultPath, "meetings"),
     path.join(vaultPath, "people"),
-    path.join(vaultPath, "backlog"),
   ];
   for (const dir of dirs) {
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -153,6 +152,7 @@ function buildProjectMd(project) {
     createdAt: project.createdAt || new Date().toISOString(),
     milestones: project.milestones || [],
     cards: project.cards || [],
+    history: project.history || [],
   };
   return buildFrontmatter(meta);
 }
@@ -168,6 +168,7 @@ function parseProjectMd(content) {
     createdAt: meta.createdAt || "",
     milestones: (meta.milestones || []).map(m => typeof m === "string" ? JSON.parse(m) : m),
     cards: (meta.cards || []).map(c => typeof c === "string" ? JSON.parse(c) : c),
+    history: (meta.history || []).map(h => typeof h === "string" ? JSON.parse(h) : h),
   };
 }
 
@@ -407,10 +408,10 @@ function buildAppMenu() {
           },
         },
         {
-          label: "Profile",
+          label: "Meetings",
           accelerator: "CmdOrCtrl+4",
           click: () => {
-            if (mainWindow) mainWindow.webContents.send("menu:navigate", "/profile");
+            if (mainWindow) mainWindow.webContents.send("menu:navigate", "/meeting");
           },
         },
       ],
@@ -419,12 +420,12 @@ function buildAppMenu() {
       label: "Help",
       submenu: [
         {
-          label: "About Daily Tracker",
+          label: "About Local Workspace",
           click: () => {
             dialog.showMessageBox(mainWindow, {
               type: "info",
-              title: "About Daily Tracker",
-              message: "Daily Tracker",
+              title: "About Local Workspace",
+              message: "Local Workspace",
               detail: `Version ${app.getVersion()}\n\nLocal-first desktop app for daily journaling, task tracking, and project management.\n\nAll data stored as .md files in your local vault.`,
             });
           },
@@ -561,14 +562,6 @@ ipcMain.handle("entries:save", (_event, date, entry) => {
   return true;
 });
 
-// ── Profile ──
-ipcMain.handle("profile:load", () => {
-  const profilePath = path.join(vaultPath, "profile.md");
-  if (!fs.existsSync(profilePath)) return { name: "", email: "", avatar: "", goals: [], facts: [] };
-  const content = fs.readFileSync(profilePath, "utf-8");
-  return parseProfileMd(content);
-});
-
 ipcMain.handle("profile:save", (_event, profile) => {
   const profilePath = path.join(vaultPath, "profile.md");
   const content = buildProfileMd(profile);
@@ -677,22 +670,6 @@ ipcMain.handle("people:delete", (_event, personId) => {
   return true;
 });
 
-// ── Backlog ──
-ipcMain.handle("backlog:loadAll", () => {
-  const dir = path.join(vaultPath, "backlog");
-  if (!fs.existsSync(dir)) return [];
-  const files = fs.readdirSync(dir).filter(f => f.endsWith(".md"));
-  const list = [];
-  for (const file of files) {
-    try {
-      list.push(parseBacklogMd(fs.readFileSync(path.join(dir, file), "utf-8")));
-    } catch (err) {
-      console.error(`Failed to parse backlog/${file}:`, err.message);
-    }
-  }
-  return list.sort((a, b) => (a.createdAt || "").localeCompare(b.createdAt || ""));
-});
-
 ipcMain.handle("backlog:save", (_event, item) => {
   const dir = path.join(vaultPath, "backlog");
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -788,7 +765,7 @@ function extractSnippet(content, query) {
 // ── Export all data as JSON backup ──
 ipcMain.handle("data:exportBackup", async () => {
   const result = await dialog.showSaveDialog(mainWindow, {
-    defaultPath: `daily-tracker-backup-${new Date().toISOString().split("T")[0]}.json`,
+    defaultPath: `local-workspace-backup-${new Date().toISOString().split("T")[0]}.json`,
     filters: [{ name: "JSON", extensions: ["json"] }],
   });
   if (result.canceled) return false;
@@ -803,9 +780,6 @@ ipcMain.handle("data:exportBackup", async () => {
     }
   }
 
-  const profilePath = path.join(vaultPath, "profile.md");
-  const profile = fs.existsSync(profilePath) ? parseProfileMd(fs.readFileSync(profilePath, "utf-8")) : {};
-
   const projectsDir = path.join(vaultPath, "projects");
   const projects = [];
   if (fs.existsSync(projectsDir)) {
@@ -814,7 +788,7 @@ ipcMain.handle("data:exportBackup", async () => {
     }
   }
 
-  const data = { entries, profile, projects, exportedAt: new Date().toISOString() };
+  const data = { entries, projects, exportedAt: new Date().toISOString() };
   fs.writeFileSync(result.filePath, JSON.stringify(data, null, 2));
   return true;
 });
@@ -838,11 +812,6 @@ ipcMain.handle("data:importBackup", async () => {
         if (!fs.existsSync(journalDir)) fs.mkdirSync(journalDir, { recursive: true });
         fs.writeFileSync(path.join(journalDir, `${date}.md`), content, "utf-8");
       }
-    }
-
-    // Write profile
-    if (data.profile) {
-      fs.writeFileSync(path.join(vaultPath, "profile.md"), buildProfileMd(data.profile), "utf-8");
     }
 
     // Write projects

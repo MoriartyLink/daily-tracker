@@ -1,18 +1,16 @@
 import { NavLink } from "react-router-dom";
-import { BookOpen, FolderKanban, BarChart3, User, Search, HardDrive, FolderOpen, PanelLeftClose, PanelLeft, Download, Upload, FolderSync, Calendar, Users, Brain } from "lucide-react";
+import { BookOpen, FolderKanban, BarChart3, Search, HardDrive, FolderOpen, PanelLeftClose, PanelLeft, Download, Upload, FolderSync, Calendar, Users } from "lucide-react";
 import { useData } from "@/contexts/DataContext";
 import { useSidebar } from "@/contexts/SidebarContext";
 import { Button } from "@/components/ui/button";
 
 const navItems = [
   { to: "/search", icon: Search, label: "Search" },
-  { to: "/backlog", icon: Brain, label: "Backlog" },
   { to: "/meeting", icon: Calendar, label: "Meeting" },
   { to: "/people", icon: Users, label: "People" },
   { to: "/", icon: BookOpen, label: "Journal" },
   { to: "/projects", icon: FolderKanban, label: "Projects" },
-  { to: "/insights", icon: BarChart3, label: "Insights" },
-  { to: "/profile", icon: User, label: "Profile" },
+  { to: "/history", icon: BarChart3, label: "History" },
 ];
 
 export function Sidebar() {
@@ -43,7 +41,7 @@ export function Sidebar() {
           ) : (
             <>
               <div className="flex items-center justify-between w-full">
-                <h1 className="text-base font-bold text-zinc-100 tracking-tight truncate">Daily Tracker</h1>
+                <h1 className="text-base font-bold text-zinc-100 tracking-tight truncate">Local Workspace</h1>
                 <button
                   onClick={() => setCollapsed(true)}
                   className="text-zinc-500 hover:text-zinc-200 transition-colors cursor-pointer shrink-0 ml-1"
@@ -71,7 +69,7 @@ export function Sidebar() {
               <div className="rounded-lg bg-zinc-950/50 backdrop-blur-sm border border-zinc-800/60 p-3">
                 <div className="flex items-center gap-2 mb-2">
                   <HardDrive className="w-3.5 h-3.5 text-emerald-400" />
-                  <span className="text-[11px] text-zinc-300 font-medium">Local Vault</span>
+                  <span className="text-[11px] text-zinc-300 font-medium">Vault</span>
                 </div>
                 <p className="text-[10px] text-zinc-500 truncate mb-2" title={vaultPath}>
                   {vaultName}

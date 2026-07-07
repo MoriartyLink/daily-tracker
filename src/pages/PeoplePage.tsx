@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { Users, User, Plus, Trash2, ChevronRight, ArrowLeft, Target, Heart, Mail, MessageCircle, Link2, Network, PenLine } from "lucide-react";
+import { Users, User, Plus, Trash2, ChevronRight, ArrowLeft, Target, Heart, Mail, MessageCircle, Link2, Network, PenLine, Calendar } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useData } from "@/contexts/DataContext";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
-import type { Person } from "@/types";
+import type { Project, Meeting, Person } from "@/types";
 
 function createPerson(): Person {
   return {
@@ -326,9 +326,11 @@ function CanvasWhiteboard({ people }: { people: Person[] }) {
 }
 
 // ── Person Detail View ──
-function PersonDetail({ person, people, onUpdate, onDelete, onBack }: {
+function PersonDetail({ person, people, projects, meetings, onUpdate, onDelete, onBack }: {
   person: Person;
   people: Person[];
+  projects: Project[];
+  meetings: Meeting[];
   onUpdate: (u: Partial<Person>) => void;
   onDelete: () => void;
   onBack: () => void;
@@ -342,6 +344,10 @@ function PersonDetail({ person, people, onUpdate, onDelete, onBack }: {
       : [...current, personId];
     onUpdate({ connections: next });
   };
+
+  const relatedCards = projects.flatMap(p => p.cards.filter(c => (c.assignedTo || []).includes(person.id)));
+  const rMeetings = (meetings || []).filter(m => (m.participants || []).includes(person.id));
+  const getProjectForCard = (id: string) => projects.find(p => p.cards.some(c => c.id === id));
 
   return (
     <div className="space-y-5">
@@ -450,6 +456,71 @@ function PersonDetail({ person, people, onUpdate, onDelete, onBack }: {
               <Textarea value={person.notes} onChange={(e) => onUpdate({ notes: e.target.value })}
                 placeholder="How are they connected with meetings, tasks, projects? Any relevant context..."
                 className="min-h-[120px] text-sm bg-zinc-900 border-zinc-700 text-zinc-200 placeholder:text-zinc-600" />
+            </CardContent>
+          </Card>
+
+          {/* Related Tasks */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm text-zinc-100">
+                <Users className="w-4 h-4 text-emerald-400" />
+                Related Tasks
+                <span className="text-xs text-zinc-500 font-normal ml-1">({relatedCards.length})</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {relatedCards.length === 0 ? (
+                <p className="text-xs text-zinc-500 text-center py-4">No tasks assigned to this person.</p>
+              ) : (
+                <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                  {relatedCards.map(card => {
+                    const proj = getProjectForCard(card.id);
+                    return (
+                      <div key={card.id} className="flex items-center justify-between p-2 rounded-lg bg-zinc-900 border border-zinc-800">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-zinc-200 truncate">{card.title || "Untitled"}</p>
+                          <p className="text-[10px] text-zinc-500">{proj?.title || "Unknown"}</p>
+                        </div>
+                        <span className={"text-[10px] px-1.5 py-0.5 rounded " + (card.columnId === "done" ? "bg-emerald-500/10 text-emerald-400" : "bg-blue-500/10 text-blue-400")}>
+                          {card.columnId}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Related Meetings */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm text-zinc-100">
+                <Calendar className="w-4 h-4 text-amber-400" />
+                Related Meetings
+                <span className="text-xs text-zinc-500 font-normal ml-1">({rMeetings.length})</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {rMeetings.length === 0 ? (
+                <p className="text-xs text-zinc-500 text-center py-4">No meetings with this person.</p>
+              ) : (
+                <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                  {rMeetings.map(meeting => (
+                    <div key={meeting.id} className="flex items-center justify-between p-2 rounded-lg bg-zinc-900 border border-zinc-800">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-zinc-200 truncate">{meeting.title || "Untitled"}</p>
+                        <p className="text-[10px] text-zinc-500">{meeting.date} {meeting.time}</p>
+                      </div>
+                      {meeting.relatedProjectId && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 truncate max-w-[120px]">
+                          {projects.find(p => p.id === meeting.relatedProjectId)?.title || "Project"}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -635,7 +706,7 @@ function PersonList({ people, onSelect, onAdd }: {
 
 // ── Main ──
 export function PeoplePage() {
-  const { people, setPeople } = useData();
+  const { people, setPeople, projects, meetings } = useData();
   const [selectedId, setSelectedId] = useLocalStorage<string | null>("people-selected", null);
   const selected = people.find((p) => p.id === selectedId) || null;
 
@@ -659,6 +730,8 @@ export function PeoplePage() {
       <PersonDetail
         person={selected}
         people={people}
+        projects={projects}
+        meetings={meetings}
         onUpdate={(u) => updatePerson(selected.id, u)}
         onDelete={() => deletePerson(selected.id)}
         onBack={() => setSelectedId(null)}

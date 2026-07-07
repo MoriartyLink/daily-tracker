@@ -5,13 +5,11 @@ Local-first desktop app for daily journaling, task tracking, projects, and insig
 ## Features
 
 - **Journal** — Daily entries with tasks, physical status, and mental reflection prompts
-- **Projects** — Kanban boards with milestones, priorities, and tags
-- **Insights** — Weekly and monthly charts for reflection depth, task completion, and physical health
+- **Projects** — Kanban boards with milestones, priorities, tags, and a 24h auto-archive of completed cards into History
 - **Meeting** — Meeting management with agenda, minutes, transcription, and participants
 - **People** — Contact management with relationships, goals, and a brainstorming whiteboard
-- **Backlog** — Brain dump compiler with Cynefin framework classification
-- **Search** — Full-text search across journals, projects, and profile
-- **Profile** — Personal info, facts, and data management (import/export)
+- **Search** — Full-text search across journals, projects, meetings, and people
+- **History** — Timeline of completed tasks and milestones across all projects
 - **Local Vault** — All data stored as `.md` files with YAML frontmatter, compatible with Obsidian
 
 ## Tech Stack
@@ -53,6 +51,10 @@ vault/
 │   ├── YYYY-MM-DD.md    # Daily entries
 ├── projects/
 │   ├── project-id.md    # Kanban project data
+├── meetings/
+│   ├── meeting-id.md    # Meeting data
+├── people/
+│   ├── person-id.md     # People data
 └── profile.md           # User profile, facts
 ```
 
@@ -81,15 +83,23 @@ src/
     SidebarContext.tsx # Sidebar collapse state
   pages/
     JournalPage.tsx    # Daily journal entries
-    BacklogPage.tsx    # Brain dump with Cynefin classification
     MeetingPage.tsx    # Meeting management
     PeoplePage.tsx     # People relationships and whiteboard
     ProjectPage.tsx    # Kanban project boards
-    InsightsPage.tsx   # Weekly/monthly charts
-    ProfilePage.tsx    # Profile, facts, data management
     SearchPage.tsx     # Vault-wide search
+    HistoryPage.tsx    # Completed tasks & milestones timeline
   types/               # TypeScript interfaces
 ```
+
+## Building & Packaging
+
+```bash
+npm run build:electron   # tsc + vite build, then electron-builder (AppImage + deb on Linux)
+```
+
+- The packaged app needs the Vite output in `dist/`. Because `dist` is listed in `.gitignore`, `electron-builder.yml` explicitly lists it under `files:` — otherwise the renderer loads a blank window (no `index.html`).
+- The `.deb` target requires an `author` email in `package.json` (used as the package maintainer).
+- **Linux / Manjaro (GNOME/Wayland):** Electron can hit a `GTK 2/3 symbols detected … GTK 4` crash. Launch with `GDK_BACKEND=x11` and the `--gtk-version=3` flag (already set in the installed `.desktop` entry).
 
 ## License
 

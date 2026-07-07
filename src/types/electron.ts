@@ -1,7 +1,7 @@
-import type { DailyEntry, UserProfile, Project } from "./index";
+import type { DailyEntry, Project, Meeting, Person } from "./index";
 
 export interface VaultSearchResult {
-  type: "journal" | "project" | "profile";
+  type: "journal" | "project" | "meeting" | "person";
   id: string;
   title: string;
   snippet: string;
@@ -17,14 +17,20 @@ export interface ElectronAPI {
   loadAllEntries: () => Promise<Record<string, DailyEntry>>;
   saveEntry: (date: string, entry: DailyEntry) => Promise<boolean>;
 
-  // Profile
-  loadProfile: () => Promise<UserProfile>;
-  saveProfile: (profile: UserProfile) => Promise<boolean>;
-
   // Projects
   loadAllProjects: () => Promise<Project[]>;
   saveProject: (project: Project) => Promise<boolean>;
   deleteProject: (projectId: string) => Promise<boolean>;
+
+  // Meetings
+  loadAllMeetings: () => Promise<Meeting[]>;
+  saveMeeting: (meeting: Meeting) => Promise<boolean>;
+  deleteMeeting: (meetingId: string) => Promise<boolean>;
+
+  // People
+  loadAllPeople: () => Promise<Person[]>;
+  savePerson: (person: Person) => Promise<boolean>;
+  deletePerson: (personId: string) => Promise<boolean>;
 
   // Search
   searchVault: (query: string) => Promise<VaultSearchResult[]>;
