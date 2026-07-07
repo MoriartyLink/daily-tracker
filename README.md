@@ -1,5 +1,7 @@
 # Local Workspace
 
+<img width="1200" height="900" alt="image" src="https://github.com/user-attachments/assets/60c769ca-48ce-4ffd-ba33-5045d3ed7c0d" />
+
 A **local-first desktop workspace** for journaling, task tracking, projects, meetings, and people management. All your data lives as plain Markdown (`.md`) files with YAML frontmatter — inspired by Obsidian — so it is fully yours, readable, and portable.
 
 ## Why this app exists
