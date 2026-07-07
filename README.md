@@ -83,9 +83,6 @@ Data flow:
 - **Direct edits:** hand-editing `.md` is supported, but keep the YAML frontmatter valid.
 - **One vault at a time:** the app targets a single local vault.
 
-## Platform
-
-This app is built and tuned for **Manjaro Linux (GNOME / Wayland)**, but it is **open source** and the source builds on any platform Electron supports. Packaging targets: AppImage + `.deb` (Linux), `.dmg` (macOS), NSIS (Windows). The prebuilt AppImage lives in the `release/` folder.
 
 ## License
 
