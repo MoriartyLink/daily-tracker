@@ -15,13 +15,6 @@ Most productivity tools lock your notes and tasks inside a cloud account. Local 
 - Anyone who prefers **local-first, private** storage over cloud accounts.
 - Linux (especially Manjaro / GNOME) users who want a native desktop app.
 
-## Why Electron desktop + an Obsidian-style `.md` vault (instead of a web app)
-
-- **Local-first & private:** no server, no account, no telemetry. Data stays in a folder on your disk.
-- **Portable & future-proof:** `.md` + YAML works with Obsidian, any text editor, git, and scripts — you are never locked in.
-- **A real desktop app:** native window, system menu, file dialogs, and full offline use — things a browser tab cannot do well.
-- **Simple sync:** point the vault at any synced folder (e.g. Syncthing / Nextcloud) to share data across machines.
-
 ## Features
 
 - **Journal** — daily entries with tasks, physical/mental status, and reflection prompts.
