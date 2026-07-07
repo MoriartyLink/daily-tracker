@@ -1,105 +1,96 @@
 # Local Workspace
 
-Local-first desktop app for daily journaling, task tracking, projects, and insights. All data stored as plain `.md` files.
+A **local-first desktop workspace** for journaling, task tracking, projects, meetings, and people management. All your data lives as plain Markdown (`.md`) files with YAML frontmatter — inspired by Obsidian — so it is fully yours, readable, and portable.
+
+## Why this app exists
+
+Most productivity tools lock your notes and tasks inside a cloud account. Local Workspace is built so your data never leaves your machine: it is stored as human-readable `.md` files you can open, edit, search, and back up with any tool. It gives you a structured, app-like experience on top of a plain-text vault.
+
+## Who should use it
+
+- People who journal daily and want reflection prompts plus task tracking in one place.
+- Individuals managing projects with Kanban boards and milestones.
+- Anyone who prefers **local-first, private** storage over cloud accounts.
+- Linux (especially Manjaro / GNOME) users who want a native desktop app.
+
+## Why Electron desktop + an Obsidian-style `.md` vault (instead of a web app)
+
+- **Local-first & private:** no server, no account, no telemetry. Data stays in a folder on your disk.
+- **Portable & future-proof:** `.md` + YAML works with Obsidian, any text editor, git, and scripts — you are never locked in.
+- **A real desktop app:** native window, system menu, file dialogs, and full offline use — things a browser tab cannot do well.
+- **Simple sync:** point the vault at any synced folder (e.g. Syncthing / Nextcloud) to share data across machines.
 
 ## Features
 
-- **Journal** — Daily entries with tasks, physical status, and mental reflection prompts
-- **Projects** — Kanban boards with milestones, priorities, tags, and a 24h auto-archive of completed cards into History
-- **Meeting** — Meeting management with agenda, minutes, transcription, and participants
-- **People** — Contact management with relationships, goals, and a brainstorming whiteboard
-- **Search** — Full-text search across journals, projects, meetings, and people
-- **History** — Timeline of completed tasks and milestones across all projects
-- **Local Vault** — All data stored as `.md` files with YAML frontmatter, compatible with Obsidian
+- **Journal** — daily entries with tasks, physical/mental status, and reflection prompts.
+- **Projects** — Kanban boards with milestones, priorities, and tags; cards completed in *Done* auto-archive to History after 24h.
+- **Meeting** — agenda, minutes, transcription, and participants.
+- **People** — contacts, relationships, goals, and a brainstorming whiteboard.
+- **Search** — full-text search across journals, projects, meetings, and people.
+- **History** — timeline of completed tasks and milestones.
+- **Local Vault** — everything as `.md` files, Obsidian-compatible.
 
-## Tech Stack
+## How to use it
 
-- **Desktop:** Electron
-- **Frontend:** React 19 + TypeScript + Vite
-- **UI:** shadcn/ui + Tailwind CSS v4
-- **Charts:** Recharts
-- **Storage:** Local filesystem (`.md` files with YAML frontmatter)
-- **Build:** electron-builder (AppImage, .deb, .dmg, NSIS)
-- **Testing:** Vitest + React Testing Library
+1. Launch **Local Workspace** from your app menu (or run the AppImage).
+2. Your **vault** is created automatically (default `~/vault`). Open or switch it from the sidebar.
+3. Use the sidebar to move between Journal, Projects, Meeting, People, Search, and History.
+4. **Back up / restore** with Export / Import in the sidebar (a JSON snapshot of the vault).
+5. Edit any `.md` file directly — the app picks up the change.
 
-## Quick Start
-
-```bash
-# Install
-git clone https://github.com/MoriartyLink/local-workspace.git
-cd local-workspace
-npm install
-
-# Development (browser mode with localStorage fallback)
-npm run dev
-
-# Development (Electron desktop mode)
-npm run dev:electron
-
-# Tests
-npm test
-
-# Build for distribution
-npm run build:electron
-```
-
-## Vault Structure
+Vault layout:
 
 ```
 vault/
-├── journal/
-│   ├── YYYY-MM-DD.md    # Daily entries
-├── projects/
-│   ├── project-id.md    # Kanban project data
-├── meetings/
-│   ├── meeting-id.md    # Meeting data
-├── people/
-│   ├── person-id.md     # People data
-└── profile.md           # User profile, facts
+├── journal/YYYY-MM-DD.md
+├── projects/<id>.md
+├── meetings/<id>.md
+├── people/<id>.md
+└── profile.md
 ```
 
-Each `.md` file uses YAML frontmatter for structured data and a markdown body for freeform content. Files are human-readable and editable in any text editor.
+## How it was built
 
-## Data Flow
-
-```
-[React UI] → [DataContext] → [electronAPI] → [IPC] → [main process] → [filesystem .md]
-```
-
-- **Electron mode:** Data flows through IPC to the main process which reads/writes `.md` files.
-- **Browser mode:** Falls back to `localStorage` for development.
-
-## Architecture
-
-```
-electron/
-  main.cjs            # Electron main process — vault I/O, IPC, window management
-  preload.cjs         # Context bridge — exposes electronAPI to renderer
-
-src/
-  components/ui/      # shadcn/ui components
-  contexts/
-    DataContext.tsx    # Central state — Electron IPC + localStorage fallback
-    SidebarContext.tsx # Sidebar collapse state
-  pages/
-    JournalPage.tsx    # Daily journal entries
-    MeetingPage.tsx    # Meeting management
-    PeoplePage.tsx     # People relationships and whiteboard
-    ProjectPage.tsx    # Kanban project boards
-    SearchPage.tsx     # Vault-wide search
-    HistoryPage.tsx    # Completed tasks & milestones timeline
-  types/               # TypeScript interfaces
-```
-
-## Building & Packaging
+- **Desktop:** Electron (main process + a preload context-bridge).
+- **UI:** React 19 + TypeScript + Vite, Tailwind CSS v4, shadcn/ui components, Recharts for charts.
+- **Storage:** the main process reads/writes `.md` files over IPC; the renderer never touches the filesystem directly.
+- **Packaging:** `electron-builder` produces an AppImage (and `.deb`) for Linux.
+- **Tests:** Vitest + React Testing Library.
 
 ```bash
-npm run build:electron   # tsc + vite build, then electron-builder (AppImage + deb on Linux)
+npm install
+npm run dev            # browser dev mode (localStorage fallback)
+npm run dev:electron   # Electron dev mode
+npm run build:electron # production AppImage + .deb
 ```
 
-- The packaged app needs the Vite output in `dist/`. Because `dist` is listed in `.gitignore`, `electron-builder.yml` explicitly lists it under `files:` — otherwise the renderer loads a blank window (no `index.html`).
-- The `.deb` target requires an `author` email in `package.json` (used as the package maintainer).
-- **Linux / Manjaro (GNOME/Wayland):** Electron can hit a `GTK 2/3 symbols detected … GTK 4` crash. Launch with `GDK_BACKEND=x11` and the `--gtk-version=3` flag (already set in the installed `.desktop` entry).
+## Components
+
+- `electron/main.cjs` — window, vault I/O, IPC handlers, file watching.
+- `electron/preload.cjs` — exposes a safe `electronAPI` to the renderer.
+- `src/App.tsx` — routing (HashRouter) + providers.
+- `src/contexts/` — `DataContext` (state + IPC) and `SidebarContext`.
+- `src/components/` — `Sidebar` and reusable UI components.
+- `src/pages/` — Journal, Project, Meeting, People, Search, History.
+- `src/types/` — shared TypeScript types.
+
+Data flow:
+
+```
+[React UI] -> [DataContext] -> [electronAPI] -> [IPC] -> [main] -> [.md files]
+```
+
+## What to be careful about
+
+- **Your data is plain files.** Deleting or corrupting a `.md` can lose data — use Export for backups.
+- **Vault location:** it is created in the launcher's working directory (usually your home). Use "Switch" in the sidebar to move it.
+- **Linux / Manjaro (GNOME/Wayland):** Electron can hit a `GTK 2/3 vs GTK 4` crash. The installed launcher already passes `GDK_BACKEND=x11 --gtk-version=3`; if you run the AppImage manually, add those flags.
+- **Direct edits:** hand-editing `.md` is supported, but keep the YAML frontmatter valid.
+- **One vault at a time:** the app targets a single local vault.
+
+## Platform
+
+This app is built and tuned for **Manjaro Linux (GNOME / Wayland)**, but it is **open source** and the source builds on any platform Electron supports. Packaging targets: AppImage + `.deb` (Linux), `.dmg` (macOS), NSIS (Windows). The prebuilt AppImage lives in the `release/` folder.
 
 ## License
 
