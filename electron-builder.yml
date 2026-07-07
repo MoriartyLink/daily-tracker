@@ -1,5 +1,5 @@
-appId: com.dailytracker.app
-productName: Daily Tracker
+appId: com.localworkspace.app
+productName: Local Workspace
 icon: public/icon.png
 
 # Explicitly include the built web bundle (dist/) and electron main process.

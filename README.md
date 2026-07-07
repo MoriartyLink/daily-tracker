@@ -1,4 +1,4 @@
-# Daily Tracker
+# Local Workspace
 
 Local-first desktop app for daily journaling, task tracking, projects, and insights. All data stored as plain `.md` files.
 
@@ -26,8 +26,8 @@ Local-first desktop app for daily journaling, task tracking, projects, and insig
 
 ```bash
 # Install
-git clone https://github.com/MoriartyLink/daily-tracker.git
-cd daily-tracker
+git clone https://github.com/MoriartyLink/local-workspace.git
+cd local-workspace
 npm install
 
 # Development (browser mode with localStorage fallback)

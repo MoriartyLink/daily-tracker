@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "description": "Local-first desktop workspace for journals, projects, meetings, and people management",
-  "author": "MoriartyLink <dev@dailytracker.app>",
+  "author": "MoriartyLink <dev@localworkspace.app>",
   "license": "MIT",
   "type": "module",
   "main": "electron/main.cjs",
