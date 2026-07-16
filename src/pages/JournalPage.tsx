@@ -8,9 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { useData } from "@/contexts/DataContext";
+import { dateKeyToLocalNoon, getLocalDateKey, getYangonResetDateKey } from "@/lib/dates";
 import type { DailyEntry, Task, PhysicalStatus, Project } from "@/types";
 
-function getDateString(d: Date) { return d.toISOString().split("T")[0]; }
+function getDateString(d: Date) { return getLocalDateKey(d); }
 function formatDateLong(d: Date) { return d.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" }); }
 
 function createEmptyEntry(date: string): DailyEntry {
@@ -154,7 +155,7 @@ function downloadMd(content: string, filename: string) {
 }
 
 export function JournalPage() {
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState(() => dateKeyToLocalNoon(getYangonResetDateKey()));
   const dateKey = getDateString(currentDate);
   const { entries, updateEntry, projects, setProjects } = useData();
   const entry = entries[dateKey] || createEmptyEntry(dateKey);
@@ -180,12 +181,17 @@ export function JournalPage() {
     const task = entry.tasks.find(t => t.id === id);
     save({ tasks: entry.tasks.map((t) => t.id === id ? { ...t, [field]: value } : t) });
     // If completing a task that was linked from a project card, move that card to done
-    if (field === 'completed' && value === true && task?.projectCardId) {
+    if (field === 'completed' && task?.projectCardId) {
       const targetProject = projects.find(p => p.cards.some(c => c.id === task.projectCardId));
       if (targetProject) {
         setProjects((prev: Project[]) => prev.map((p: Project) => p.id === targetProject.id ? {
           ...p,
-          cards: p.cards.map((c: any) => c.id === task.projectCardId ? { ...c, columnId: 'done' as const } : c)
+          cards: p.cards.map((c: any) => {
+            if (c.id !== task.projectCardId) return c;
+            if (value === true) return { ...c, columnId: 'done' as const, completedAt: new Date().toISOString() };
+            if (c.columnId === 'done') return { ...c, columnId: 'in-progress' as const, completedAt: '' };
+            return c;
+          })
         } : p));
       }
     }
@@ -224,7 +230,7 @@ export function JournalPage() {
         if (targetProject) {
           setProjects((prev: Project[]) => prev.map((p: Project) => p.id === data.projectId ? {
             ...p,
-            cards: p.cards.map((c: any) => c.id === data.id ? { ...c, columnId: 'in-progress' } : c)
+            cards: p.cards.map((c: any) => c.id === data.id ? { ...c, columnId: 'in-progress' as const, completedAt: '' } : c)
           } : p));
         }
       }
@@ -278,7 +284,7 @@ export function JournalPage() {
               type="date"
               value={dateKey}
               onChange={(e) => {
-                const newDate = new Date(e.target.value);
+                const newDate = dateKeyToLocalNoon(e.target.value);
                 if (!isNaN(newDate.getTime())) setCurrentDate(newDate);
               }}
               className="w-44 h-9 text-xs bg-zinc-900 border-zinc-700 text-zinc-200 cursor-pointer"
